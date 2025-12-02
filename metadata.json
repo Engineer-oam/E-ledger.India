@@ -1,0 +1,7 @@
+{
+  "name": "E-Ledger",
+  "description": "A permissioned, GS1-compliant blockchain supply-chain ledger for pharmaceutical and excise tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
