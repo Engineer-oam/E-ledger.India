@@ -72,7 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const COLORS = ['#f59e0b', '#10b981', '#6366f1'];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="max-w-[96%] mx-auto space-y-8 pb-12">
       {/* Real-time Infrastructure Status */}
       <div className="bg-slate-900 text-white rounded-lg p-4 flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-4">

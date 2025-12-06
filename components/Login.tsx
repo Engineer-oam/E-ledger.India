@@ -60,7 +60,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         navigate('/dashboard');
       } else {
         if (!useRemote) {
-          setError('Invalid License No / GLN or Password. (Demo Mode: Local Storage only)');
+          setError('Invalid License No / GLN or Password.');
         } else {
           setError('Invalid Credentials.');
         }
@@ -109,7 +109,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 overflow-y-auto">
       
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -152,25 +152,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       )}
 
       {/* Login Card */}
-      <div className="max-w-sm w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative">
+      {/* Increased width to max-w-md (approx 448px) for wider look */}
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
         <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 z-20 p-2 bg-slate-800/50 hover:bg-slate-800 text-white rounded-full backdrop-blur-sm transition-colors">
-          <Settings size={18} />
+          <Settings size={16} />
         </button>
 
-        <div className="bg-slate-900 p-8 pt-12 text-center relative overflow-hidden">
+        {/* Reduced vertical padding (p-6) for shorter height */}
+        <div className="bg-slate-900 p-6 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="relative z-10">
-            <div className="inline-block p-4 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-900/50 transform rotate-3">
-              {view === 'login' ? <Stamp size={36} className="text-white" /> : <KeyRound size={36} className="text-white" />}
+            {/* Smaller icon container and margin */}
+            <div className="inline-block p-2.5 bg-indigo-600 rounded-2xl mb-2 shadow-lg shadow-indigo-900/50 transform rotate-3">
+              {view === 'login' ? <Stamp size={24} className="text-white" /> : <KeyRound size={24} className="text-white" />}
             </div>
-            <h1 className="text-3xl font-extrabold text-white mb-1 tracking-tight">ExciseLedger</h1>
-            <p className="text-slate-400 text-sm font-medium">State Supply Chain Portal</p>
+            <h1 className="text-2xl font-extrabold text-white mb-0.5 tracking-tight">ExciseLedger</h1>
+            <p className="text-slate-400 text-xs font-medium">State Supply Chain Portal</p>
           </div>
         </div>
         
-        <div className="p-8 sm:p-10">
+        {/* Reduced padding p-6 */}
+        <div className="p-6">
           {!useRemote && (
-            <div className="mb-6 flex flex-col gap-2">
+            <div className="mb-4 flex flex-col gap-2">
               <div className="flex justify-center">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-500 border border-slate-200">
                   <Settings size={10} />
@@ -181,21 +185,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           )}
 
           {error && (
-            <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl text-center animate-in fade-in">
+            <div className="mb-4 p-2.5 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-lg text-center animate-in fade-in">
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-6 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl text-center flex items-center justify-center gap-2 animate-in fade-in">
-              <CheckCircle2 size={16} />
+            <div className="mb-4 p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs font-medium rounded-lg text-center flex items-center justify-center gap-2 animate-in fade-in">
+              <CheckCircle2 size={14} />
               {success}
             </div>
           )}
           
           {view === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-6">
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                   License No / GLN
                 </label>
                 <input
@@ -203,56 +207,59 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={gln}
                   onChange={(e) => setGln(e.target.value)}
-                  className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition font-mono text-sm"
+                  // Reduced padding py-2
+                  className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition font-mono text-sm"
                   placeholder="0000000000000"
                 />
               </div>
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
-                  <button type="button" onClick={() => { setView('forgot'); setError(''); }} className="text-xs text-indigo-600 hover:text-indigo-800 font-bold">Forgot?</button>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                  <button type="button" onClick={() => { setView('forgot'); setError(''); }} className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold">Forgot?</button>
                 </div>
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" placeholder="••••••••" />
+                {/* Reduced padding py-2 */}
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm" placeholder="••••••••" />
               </div>
 
               <div className="flex items-center">
-                <input id="remember-me" type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-4 w-4 text-indigo-600 rounded cursor-pointer" />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer select-none">Remember GLN</label>
+                <input id="remember-me" type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-3.5 w-3.5 text-indigo-600 rounded cursor-pointer" />
+                <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-600 cursor-pointer select-none">Remember GLN</label>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center space-x-2 transform hover:translate-y-[-1px]">
-                {loading ? <Loader2 size={20} className="animate-spin" /> : <><span>Secure Login</span><ArrowRight size={18} /></>}
+              {/* Reduced button padding py-2.5 */}
+              <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center space-x-2 transform hover:translate-y-[-1px] text-sm">
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <><span>Secure Login</span><ArrowRight size={16} /></>}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleResetSubmit} className="space-y-5">
+            <form onSubmit={handleResetSubmit} className="space-y-4">
               {resetStep === 1 && (
                 <>
-                  <p className="text-sm text-slate-600 text-center mb-4 leading-relaxed">Enter your License Number to verify identity.</p>
+                  <p className="text-xs text-slate-600 text-center mb-2 leading-relaxed">Enter your License Number to verify identity.</p>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">License / GLN</label>
-                    <input type="text" required value={resetGln} onChange={(e) => setResetGln(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">License / GLN</label>
+                    <input type="text" required value={resetGln} onChange={(e) => setResetGln(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
                   </div>
-                  <button type="button" onClick={() => { if(resetGln.length >= 8) setResetStep(2); else setError('Invalid Format'); }} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg">Verify Identity</button>
+                  <button type="button" onClick={() => { if(resetGln.length >= 8) setResetStep(2); else setError('Invalid Format'); }} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg text-sm">Verify Identity</button>
                 </>
               )}
 
               {resetStep === 2 && (
                 <>
-                   <p className="text-sm text-slate-600 text-center mb-4">Identity verified. Set new password.</p>
-                   <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">New Password</label><input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500" /></div>
-                   <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Confirm</label><input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500" /></div>
-                  <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-lg">{loading ? <Loader2 size={18} className="animate-spin"/> : <Lock size={18} />}<span>Update Password</span></button>
+                   <p className="text-xs text-slate-600 text-center mb-2">Identity verified. Set new password.</p>
+                   <div><label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">New Password</label><input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 text-sm" /></div>
+                   <div><label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Confirm</label><input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 text-sm" /></div>
+                  <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-lg text-sm">{loading ? <Loader2 size={18} className="animate-spin"/> : <Lock size={16} />}<span>Update Password</span></button>
                 </>
               )}
-              <button type="button" onClick={() => { setView('login'); setError(''); setResetStep(1); }} className="w-full mt-2 text-slate-500 hover:text-slate-800 text-sm font-medium py-2">Back to Login</button>
+              <button type="button" onClick={() => { setView('login'); setError(''); setResetStep(1); }} className="w-full mt-2 text-slate-500 hover:text-slate-800 text-xs font-medium py-2">Back to Login</button>
             </form>
           )}
 
           {view === 'login' && (
-            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-              <p className="text-slate-500 text-sm mb-3">New Licensee?</p>
-              <Link to="/signup" className="text-indigo-600 hover:text-indigo-800 font-bold text-sm transition-colors uppercase tracking-wide">Apply for Account</Link>
+            <div className="mt-4 pt-4 border-t border-slate-100 text-center">
+              <p className="text-slate-400 text-xs mb-1">New Licensee?</p>
+              <Link to="/signup" className="text-indigo-600 hover:text-indigo-800 font-bold text-xs transition-colors uppercase tracking-wide">Apply for Account</Link>
             </div>
           )}
         </div>
