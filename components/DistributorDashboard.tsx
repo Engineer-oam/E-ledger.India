@@ -122,14 +122,14 @@ const DistributorDashboard: React.FC<DistributorDashboardProps> = ({ user }) => 
             <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-bold flex items-center gap-2">
-                  <Scan size={24} className="text-blue-400" />
+                  <Scan size={24} className="text-indigo-400" />
                   <span>Receive Shipment</span>
                 </h3>
                 <p className="text-sm text-slate-400">Scan QR Code on Pallet or Batch Box</p>
               </div>
               <button 
                 onClick={() => setShowScanner(true)}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors shadow-lg shadow-blue-900/50"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors shadow-lg shadow-indigo-900/50"
               >
                 <Camera size={18} />
                 <span className="hidden sm:inline">Use Camera</span>
@@ -143,7 +143,7 @@ const DistributorDashboard: React.FC<DistributorDashboardProps> = ({ user }) => 
                   value={scanInput}
                   onChange={e => setScanInput(e.target.value)}
                   placeholder="Focus here to scan with external device..."
-                  className="w-full pl-12 pr-4 py-4 text-lg border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-0 outline-none transition font-mono shadow-inner"
+                  className="w-full pl-12 pr-4 py-4 text-lg border-2 border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-0 outline-none transition font-mono shadow-inner"
                   autoFocus
                 />
                 <Scan className="absolute left-4 top-5 text-slate-400" size={24} />
@@ -188,7 +188,7 @@ const DistributorDashboard: React.FC<DistributorDashboardProps> = ({ user }) => 
                     <button 
                       onClick={handleReceive}
                       disabled={actionLoading || scannedBatch.status === 'RECEIVED'}
-                      className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-md transition-all"
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-md transition-all"
                     >
                       {actionLoading ? 'Updating Ledger...' : (
                         <>
@@ -237,7 +237,7 @@ const DistributorDashboard: React.FC<DistributorDashboardProps> = ({ user }) => 
 
         {/* Right Col: Stats */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg p-6 text-white">
+          <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-xl shadow-lg p-6 text-white">
             <div className="flex items-center gap-3 mb-2 opacity-80">
               <Truck size={20} />
               <span className="text-sm font-bold uppercase tracking-wider">Inbound Pending</span>

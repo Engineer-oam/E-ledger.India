@@ -1,15 +1,18 @@
 
 import React from 'react';
-import { Printer, ShieldCheck } from 'lucide-react';
+import { Printer, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { BatchStatus } from '../types';
 
 interface BatchLabelProps {
   gtin: string;
   lot: string;
   expiry: string; 
   productName: string;
+  status?: string; 
+  hidePrintButton?: boolean;
 }
 
-const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName }) => {
+const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName, status, hidePrintButton = false }) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '000000';
     try {
@@ -27,8 +30,13 @@ const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName 
   const gs1Text = `(01)${gtin || '00'}(17)${expShort}(10)${lot || '000'}`;
   const encodedText = encodeURIComponent(gs1Text);
 
+  const isDutyPaid = status === BatchStatus.DUTY_PAID || status === BatchStatus.SOLD;
+  const isBonded = !status || status === BatchStatus.BONDED || status === BatchStatus.CREATED;
+
   return (
-    <div className="relative w-full max-w-sm rounded-lg overflow-hidden border border-slate-300 shadow-md group print:border-black print:shadow-none">
+    <div className={`relative w-full max-w-sm rounded-lg overflow-hidden border shadow-md group print:border-black print:shadow-none bg-white
+        ${isDutyPaid ? 'border-emerald-200' : 'border-amber-200'}
+    `}>
         
         {/* Holographic Overlay Layer (CSS Simulation) */}
         <div className="absolute inset-0 z-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style={{
@@ -38,23 +46,33 @@ const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName 
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         
         {/* Security Strip */}
-        <div className="absolute top-0 right-4 w-2 h-full bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-300 opacity-60 z-10 print:opacity-30"></div>
+        <div className={`absolute top-0 right-4 w-2 h-full bg-gradient-to-b opacity-60 z-10 print:opacity-30
+            ${isDutyPaid ? 'from-green-300 via-emerald-500 to-green-300' : 'from-yellow-300 via-amber-500 to-yellow-300'}
+        `}></div>
 
         <div className="relative z-10 bg-white/90 p-3 flex flex-col gap-2">
             
             {/* Header: State Excise */}
-            <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2">
+            <div className={`flex justify-between items-center border-b-2 pb-2 ${isDutyPaid ? 'border-emerald-800' : 'border-amber-800'}`}>
                  <div className="flex items-center gap-1.5">
-                    <div className="p-1 bg-indigo-900 rounded-full">
-                        <ShieldCheck size={14} className="text-white" />
+                    <div className={`p-1 rounded-full ${isDutyPaid ? 'bg-emerald-900' : 'bg-amber-700'}`}>
+                        {isDutyPaid ? <ShieldCheck size={14} className="text-white" /> : <AlertTriangle size={14} className="text-white" />}
                     </div>
                     <div>
-                        <h4 className="font-black text-xs uppercase text-indigo-900 tracking-wider">State Excise</h4>
-                        <p className="text-[8px] text-indigo-700 font-bold tracking-tight">GOVERNMENT OF INDIA</p>
+                        <h4 className={`font-black text-xs uppercase tracking-wider ${isDutyPaid ? 'text-emerald-900' : 'text-amber-900'}`}>
+                            {isDutyPaid ? 'State Excise' : 'Bonded Stock'}
+                        </h4>
+                        <p className={`text-[8px] font-bold tracking-tight ${isDutyPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            GOVERNMENT OF INDIA
+                        </p>
                     </div>
                  </div>
                  <div className="text-[9px] font-bold font-mono text-slate-800 text-right leading-tight">
-                    DUTY PAID<br/>NOT FOR SALE<br/>OUTSIDE STATE
+                    {isDutyPaid ? (
+                        <>DUTY PAID<br/>NOT FOR SALE<br/>OUTSIDE STATE</>
+                    ) : (
+                        <>DUTY UNPAID<br/>FOR EXPORT /<br/>BONDED USE ONLY</>
+                    )}
                  </div>
             </div>
             
@@ -89,20 +107,22 @@ const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName 
         </div>
         
         {/* Actions (Hidden in Print) */}
-        <div className="bg-slate-50 p-2 flex justify-between items-center print:hidden border-t border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                Secure Hologram
-            </span>
-            <button 
-                type="button"
-                onClick={() => window.print()}
-                className="text-indigo-600 hover:text-indigo-800 text-xs font-bold flex items-center gap-1.5 bg-white border border-indigo-200 px-3 py-1 rounded shadow-sm hover:shadow transition-all"
-            >
-                <Printer size={14} /> 
-                <span>Print Label</span>
-            </button>
-        </div>
+        {!hidePrintButton && (
+            <div className="bg-slate-50 p-2 flex justify-between items-center print:hidden border-t border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    Secure Hologram
+                </span>
+                <button 
+                    type="button"
+                    onClick={() => window.print()}
+                    className="text-indigo-600 hover:text-indigo-800 text-xs font-bold flex items-center gap-1.5 bg-white border border-indigo-200 px-3 py-1 rounded shadow-sm hover:shadow transition-all"
+                >
+                    <Printer size={14} /> 
+                    <span>Print Label</span>
+                </button>
+            </div>
+        )}
     </div>
   );
 };

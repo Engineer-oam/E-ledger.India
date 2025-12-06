@@ -125,11 +125,11 @@ export const LedgerService = {
       productName: batchData.productName || 'Unknown Product',
       manufacturerGLN: actor.gln,
       currentOwnerGLN: actor.gln,
-      status: BatchStatus.CREATED,
+      status: batchData.status || BatchStatus.BONDED,
       integrityHash: genesisHash, // Hologram ID
       alcoholContent: batchData.alcoholContent,
       category: batchData.category,
-      dutyPaid: false,
+      dutyPaid: batchData.dutyPaid || false,
       trace: [
         {
           eventID: `evt-${Date.now()}`,
@@ -246,7 +246,13 @@ export const LedgerService = {
             location: ewbPartial?.fromPlace || 'Distribution Center',
             txHash: '', // Calculated in updateBatch
             previousHash: '',
-            metadata: { recipient: toName, recipientGLN: toGLN, gst, ewayBill: ewbPartial }
+            metadata: { 
+              recipient: toName, 
+              recipientGLN: toGLN, 
+              gst, 
+              ewayBill: ewbPartial,
+              payment: paymentMeta // Included in blockchain metadata
+            }
         };
 
         const updated = { ...batch, status: BatchStatus.IN_TRANSIT, intendedRecipientGLN: toGLN };

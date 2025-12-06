@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Batch, User, GSTDetails, EWayBill, PaymentStatus } from '../types';
-import { Truck, FileText, IndianRupee, ShieldCheck, Printer, ArrowRight, CreditCard, MapPin, Check, User as UserIcon, ArrowLeft, Package } from 'lucide-react';
+import { Truck, FileText, IndianRupee, ShieldCheck, Printer, ArrowRight, CreditCard, MapPin, Check, User as UserIcon, ArrowLeft, Package, Banknote, Percent } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PrintableInvoice from './PrintableInvoice';
 
@@ -43,6 +43,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
     amountPaid: 0,
     isCredit: true,
     waived: 0,
+    method: 'BANK_TRANSFER',
     notes: ''
   });
 
@@ -74,7 +75,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
 
     // Construct Payment Metadata
     let derivedStatus = PaymentStatus.UNPAID;
-    if (paymentData.amountPaid >= totalAmount) derivedStatus = PaymentStatus.PAID;
+    if (paymentData.amountPaid >= (totalAmount - paymentData.waived)) derivedStatus = PaymentStatus.PAID;
     else if (paymentData.amountPaid > 0) derivedStatus = PaymentStatus.PARTIAL;
     else if (paymentData.waived >= totalAmount) derivedStatus = PaymentStatus.WAIVED;
     else if (paymentData.isCredit) derivedStatus = PaymentStatus.CREDIT;
@@ -85,7 +86,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
         amountRemaining: Math.max(0, totalAmount - paymentData.amountPaid - paymentData.waived),
         waivedAmount: paymentData.waived,
         status: derivedStatus,
-        method: 'BANK_TRANSFER',
+        method: paymentData.method,
         notes: paymentData.notes
     };
 
@@ -109,7 +110,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
         })),
         tax: { rate: gstData.rate, amount: taxAmount },
         total: totalAmount,
-        remarks: `Payment Status: ${derivedStatus}. Paid: ${paymentData.amountPaid}. Balance: ${paymentMeta.amountRemaining}.`,
+        remarks: `Payment Status: ${derivedStatus}. Method: ${paymentData.method}. Paid: ${paymentData.amountPaid}. Balance: ${paymentMeta.amountRemaining}.`,
         ewayBill: {
             ewbNo: '141' + Math.floor(100000000 + Math.random() * 900000000), 
             vehicleNo: transportData.vehicleNo,
@@ -327,15 +328,48 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
                     </div>
 
                     <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Amount Paid</label>
+                                <div className="relative">
+                                    <IndianRupee size={16} className="absolute left-3 top-3 text-slate-400" />
+                                    <input 
+                                        type="number" 
+                                        className="w-full border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        value={paymentData.amountPaid}
+                                        onChange={e => setPaymentData({...paymentData, amountPaid: Number(e.target.value)})}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Payment Method</label>
+                                <div className="relative">
+                                    <Banknote size={16} className="absolute left-3 top-3 text-slate-400" />
+                                    <select 
+                                        className="w-full border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                                        value={paymentData.method}
+                                        onChange={e => setPaymentData({...paymentData, method: e.target.value})}
+                                    >
+                                        <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="CHEQUE">Cheque / DD</option>
+                                        <option value="CASH">Cash</option>
+                                        <option value="CREDIT_CARD">Credit Card</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Amount Paid (Advance)</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waiver / Discount (₹)</label>
                             <div className="relative">
-                                <IndianRupee size={16} className="absolute left-3 top-3 text-slate-400" />
+                                <Percent size={16} className="absolute left-3 top-3 text-slate-400" />
                                 <input 
-                                    type="number" 
+                                    type="number"
                                     className="w-full border border-slate-300 rounded-lg pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
-                                    value={paymentData.amountPaid}
-                                    onChange={e => setPaymentData({...paymentData, amountPaid: Number(e.target.value)})}
+                                    placeholder="0.00"
+                                    value={paymentData.waived || ''}
+                                    onChange={e => setPaymentData({...paymentData, waived: Number(e.target.value)})}
                                 />
                             </div>
                         </div>
@@ -346,7 +380,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
                              </div>
                              <div className="flex-1">
                                  <p className="text-sm font-bold text-slate-700">Credit Transaction</p>
-                                 <p className="text-xs text-slate-500">Record remaining balance {Math.max(0, totalAmount - paymentData.amountPaid).toLocaleString()} as account payable.</p>
+                                 <p className="text-xs text-slate-500">Record remaining balance {Math.max(0, totalAmount - paymentData.amountPaid - paymentData.waived).toLocaleString()} as account payable.</p>
                              </div>
                         </div>
 
@@ -354,7 +388,7 @@ const TransferModal: React.FC<TransferModalProps> = ({ batches, onClose, onSubmi
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Payment Notes</label>
                             <input 
                                 className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-slate-400 outline-none"
-                                placeholder="Cheque No, Transaction ID..."
+                                placeholder="Cheque No, Transaction ID, Waiver Reason..."
                                 value={paymentData.notes}
                                 onChange={e => setPaymentData({...paymentData, notes: e.target.value})}
                             />

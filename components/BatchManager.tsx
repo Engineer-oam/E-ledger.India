@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Batch, UserRole, BatchStatus, GSTDetails, EWayBill, ReturnReason } from '../types';
 import { LedgerService } from '../services/ledgerService';
 import { AuthService } from '../services/authService';
-import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp, AlertTriangle, MapPin, DollarSign, Printer, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BatchLabel from './BatchLabel';
 import TransferModal from './TransferModal'; 
@@ -30,10 +30,23 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
   const [selectedBatchForRecall, setSelectedBatchForRecall] = useState<Batch | null>(null);
   const [recallReason, setRecallReason] = useState('');
 
+  // Print States
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
   // Form State including Excise Fields
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    gtin: string;
+    productName: string;
+    lotNumber: string;
+    expiryDate: string;
+    quantity: number;
+    unit: string;
+    alcoholContent: number;
+    category: 'IMFL' | 'BEER' | 'COUNTRY_LIQUOR' | 'WINE' | 'SPIRIT';
+    isDutyPaid: boolean;
+  }>({
     gtin: '',
     productName: '',
     lotNumber: '',
@@ -42,6 +55,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
     unit: 'Cases',
     alcoholContent: 42.8,
     category: 'IMFL',
+    isDutyPaid: false
   });
 
   // Return Form State
@@ -77,11 +91,19 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const batchID = await LedgerService.createBatch(formData, user);
-      toast.success(`Batch ${batchID} Distilled & Registered!`);
+      const batchPayload: Partial<Batch> = {
+        ...formData,
+        dutyPaid: formData.isDutyPaid,
+        status: formData.isDutyPaid ? BatchStatus.DUTY_PAID : BatchStatus.BONDED
+      };
+      
+      const batchID = await LedgerService.createBatch(batchPayload, user);
+      toast.success(`Batch ${batchID} Registered! Status: ${batchPayload.status}`);
       setShowCreateModal(false);
       fetchData(); 
-      setFormData({ gtin: '', productName: '', lotNumber: '', expiryDate: '', quantity: 0, unit: 'Cases', alcoholContent: 42.8, category: 'IMFL' });
+      setFormData({ 
+        gtin: '', productName: '', lotNumber: '', expiryDate: '', quantity: 0, unit: 'Cases', alcoholContent: 42.8, category: 'IMFL', isDutyPaid: false 
+      });
     } catch (err: any) {
       toast.error(err.message || 'Failed to create batch');
     }
@@ -92,6 +114,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
     if (batchesToTransfer.length === 0) return;
     
     try {
+        // Pass E-Way Bill details directly to the service
         await LedgerService.transferBatches(
             batchesToTransfer.map(b => b.batchID),
             toGLN,
@@ -104,6 +127,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
         toast.success(`Dispatched ${batchesToTransfer.length} loads to ${toName}`);
         fetchData();
         setSelectedBatchIds([]);
+        setShowTransferModal(false);
     } catch (err: any) {
         toast.error(`Transfer failed: ${err.message || err}`);
     }
@@ -154,7 +178,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
     const products = [
       'Royal Reserve Whisky', 'Old Monk Rum', 'Kingfisher Lager', 'Sula Shiraz', 'Blue Riband Gin'
     ];
-    const categories = ['IMFL', 'IMFL', 'BEER', 'WINE', 'IMFL'];
+    const categories: ('IMFL' | 'BEER' | 'COUNTRY_LIQUOR' | 'WINE' | 'SPIRIT')[] = ['IMFL', 'IMFL', 'BEER', 'WINE', 'IMFL'];
     const idx = Math.floor(Math.random() * products.length);
     const randomProduct = products[idx];
     const randomCategory = categories[idx];
@@ -163,6 +187,8 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 2);
     
+    const isPaid = Math.random() > 0.5;
+
     setFormData({
       gtin: AuthService.generateGTIN(),
       productName: randomProduct,
@@ -171,22 +197,25 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
       quantity: Math.floor(Math.random() * 500) + 50,
       unit: 'Cases',
       alcoholContent: randomCategory === 'BEER' ? 6.5 : 42.8,
-      category: randomCategory
+      category: randomCategory,
+      isDutyPaid: isPaid
     });
     toast.info('Distillery form auto-filled');
   };
 
   const getStatusColor = (status: BatchStatus) => {
     switch (status) {
-      case BatchStatus.CREATED: return 'bg-slate-100 text-slate-600'; // Distilled
-      case BatchStatus.BONDED: return 'bg-amber-100 text-amber-700';
-      case BatchStatus.DUTY_PAID: return 'bg-emerald-100 text-emerald-700';
-      case BatchStatus.IN_TRANSIT: return 'bg-blue-100 text-blue-600';
-      case BatchStatus.RECEIVED: return 'bg-indigo-100 text-indigo-600';
-      case BatchStatus.SOLD: return 'bg-gray-100 text-gray-500';
-      case BatchStatus.QUARANTINED: return 'bg-red-100 text-red-600';
-      case BatchStatus.RECALLED: return 'bg-red-600 text-white';
-      default: return 'bg-gray-100 text-gray-600';
+      case BatchStatus.CREATED: return 'bg-slate-100 text-slate-600 border-slate-200'; // Distilled
+      case BatchStatus.BONDED: return 'bg-amber-100 text-amber-800 border-amber-200'; // Amber for Bonded
+      case BatchStatus.DUTY_PAID: return 'bg-green-100 text-green-800 border-green-200'; // Green for Duty Paid
+      case BatchStatus.IN_TRANSIT: return 'bg-blue-100 text-blue-800 border-blue-200';
+      case BatchStatus.RECEIVED: return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case BatchStatus.SOLD: return 'bg-slate-200 text-slate-500 border-slate-200';
+      case BatchStatus.QUARANTINED: return 'bg-red-100 text-red-800 border-red-200';
+      case BatchStatus.RECALLED: return 'bg-red-600 text-white border-red-700 shadow-sm'; // Solid Red for Recall
+      case BatchStatus.RETURNED: return 'bg-orange-100 text-orange-800 border-orange-200';
+      case BatchStatus.DESTROYED: return 'bg-gray-800 text-gray-100 border-gray-900';
+      default: return 'bg-gray-100 text-gray-600 border-gray-200';
     }
   };
 
@@ -228,8 +257,8 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
 
       {activeTab === 'inventory' && (
       <>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row items-center gap-4 justify-between">
-            <div className="flex items-center space-x-4 w-full sm:w-auto flex-1">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row items-center gap-4 justify-between">
+            <div className="flex items-center space-x-4 w-full md:w-auto flex-1">
                 <Search className="text-slate-400 shrink-0" size={20} />
                 <input 
                     type="text" 
@@ -239,11 +268,20 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
             </div>
             
             {selectedBatchIds.length > 0 && (
-                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end animate-in fade-in slide-in-from-right-2">
-                    <span className="text-sm font-semibold text-slate-600">{selectedBatchIds.length} Selected</span>
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end animate-in fade-in slide-in-from-right-2">
+                    <span className="text-sm font-semibold text-slate-600 mr-2">{selectedBatchIds.length} Selected</span>
+                    
+                    <button 
+                        onClick={() => setShowPrintModal(true)}
+                        className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md hover:bg-slate-700 transition-colors"
+                    >
+                        <Printer size={16} />
+                        <span>Print Labels</span>
+                    </button>
+
                     <button 
                         onClick={() => setShowTransferModal(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md transition-colors"
                     >
                         <Layers size={16} />
                         <span>Dispatch / Transfer</span>
@@ -307,7 +345,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                             <td className="px-6 py-4 font-mono text-sm text-slate-600">{batch.gtin}</td>
                             <td className="px-6 py-4 text-sm text-slate-600">{batch.category}</td>
                             <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium border border-opacity-20 ${getStatusColor(batch.status)} border-current whitespace-nowrap`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(batch.status)} whitespace-nowrap`}>
                                 {batch.status.replace('_', ' ')}
                             </span>
                             </td>
@@ -367,7 +405,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
       </>
       )}
 
-      {/* Shipment Logs Tab - Keeping logic mostly same but updating UI text */}
+      {/* Shipment Logs Tab */}
       {activeTab === 'shipments' && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex items-center gap-3">
@@ -381,7 +419,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                             <th className="px-6 py-4">Direction</th>
                             <th className="px-6 py-4">Licensee (GLN)</th>
                             <th className="px-6 py-4">Brand / Batch</th>
-                            <th className="px-6 py-4">E-Way Bill</th>
+                            <th className="px-6 py-4">E-Way Bill Details</th>
                             <th className="px-6 py-4 text-right">Status</th>
                         </tr>
                     </thead>
@@ -430,9 +468,16 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                                 </td>
                                 <td className="px-6 py-4 text-sm text-slate-500">
                                     {log.ewb ? (
-                                        <div className="flex flex-col text-xs">
-                                          <span className="font-bold text-slate-700">EWB: {log.ewb.ewbNo}</span>
-                                          <span className="text-slate-400">{new Date(log.ewb.generatedDate).toLocaleDateString()}</span>
+                                        <div className="flex flex-col text-xs space-y-1">
+                                          <div className="flex items-center gap-1 text-slate-700 font-bold">
+                                            <Truck size={12} />
+                                            <span>{log.ewb.vehicleNo}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <MapPin size={12} />
+                                            <span>{log.ewb.fromPlace} ➝ {log.ewb.toPlace}</span>
+                                          </div>
+                                          <span className="text-slate-400">Dist: {log.ewb.distanceKm} km</span>
                                         </div>
                                     ) : (
                                         <span className="text-slate-300 italic">--</span>
@@ -447,6 +492,59 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                         ))}
                     </tbody>
                 </table>
+            </div>
+        </div>
+      )}
+
+      {/* PRINT LABELS MODAL */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
+            {/* Toolbar - Hidden when printing */}
+            <div className="p-4 bg-slate-900 text-white flex justify-between items-center print:hidden sticky top-0 z-50 shadow-md">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-600 rounded-lg">
+                        <Printer size={20} className="text-white" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold">Label Printing Queue</h3>
+                        <p className="text-xs text-slate-400">{selectedBatchIds.length} stickers ready for thermal printer</p>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setShowPrintModal(false)} 
+                        className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        Close
+                    </button>
+                    <button 
+                        onClick={() => window.print()} 
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg flex items-center gap-2"
+                    >
+                        <Printer size={18} />
+                        <span>Print All</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Printable Grid */}
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 print:block print:p-0 print:gap-0">
+               {getSelectedBatches().map((batch, idx) => (
+                   <div key={batch.batchID} className="flex justify-center print:break-inside-avoid print:mb-4 print:page-break-after-auto print:flex print:justify-start">
+                      <BatchLabel 
+                          gtin={batch.gtin} 
+                          lot={batch.lotNumber} 
+                          expiry={batch.expiryDate} 
+                          productName={batch.productName} 
+                          status={batch.status}
+                          hidePrintButton={true}
+                      />
+                   </div>
+               ))}
+            </div>
+            
+            <div className="print:hidden p-8 text-center text-slate-400 text-sm">
+                <p>Preview Mode. Use Ctrl+P or the Print button to send to printer.</p>
             </div>
         </div>
       )}
@@ -472,7 +570,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div>
                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Category</label>
-                     <select className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                     <select className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})}>
                        <option value="IMFL">IMFL (Foreign Liquor)</option>
                        <option value="BEER">Beer</option>
                        <option value="WINE">Wine</option>
@@ -486,12 +584,50 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">GTIN</label><input required maxLength={14} minLength={14} type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition font-mono" value={formData.gtin} onChange={e => setFormData({...formData, gtin: e.target.value})} placeholder="00089012345678" /></div><div><label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Vat / Lot Number</label><input required type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition" value={formData.lotNumber} onChange={e => setFormData({...formData, lotNumber: e.target.value})} placeholder="VAT-2024-X" /></div></div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Bottling Date</label><input required type="date" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} /></div><div><label className="block text-xs font-semibold text-slate-500 uppercase mb-1.5">Quantity (Cases)</label><input required type="number" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition" value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})} /></div></div>
                 
+                {/* Duty Paid Toggle */}
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-2">
+                    <label className="flex items-center cursor-pointer gap-3">
+                        <div className="relative">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only peer"
+                                checked={formData.isDutyPaid}
+                                onChange={e => setFormData({...formData, isDutyPaid: e.target.checked})} 
+                            />
+                            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </div>
+                        <div>
+                            <span className="block text-sm font-bold text-slate-800">Pre-Pay State Excise Duty</span>
+                            <span className="text-xs text-slate-500">Mark batch as Duty Paid immediately upon creation</span>
+                        </div>
+                    </label>
+                    <div className="mt-2 pl-14">
+                        {formData.isDutyPaid ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 font-bold bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200">
+                                <DollarSign size={12} />
+                                Status: DUTY PAID
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 font-bold bg-amber-100 px-2.5 py-1 rounded-md border border-amber-200">
+                                <AlertTriangle size={12} />
+                                Status: BONDED (Unpaid)
+                            </span>
+                        )}
+                    </div>
+                </div>
+
                 <div className="pt-6 flex justify-end space-x-3 mt-auto"><button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancel</button><button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md transition-all transform hover:scale-[1.02]">Issue Excise Holograms</button></div>
               </form>
             </div>
             <div className="w-full md:w-80 bg-slate-50 border-t md:border-t-0 md:border-l border-slate-200 p-6 md:p-8 flex flex-col items-center justify-center">
                 <div className="mb-6 text-center"><h4 className="text-sm font-bold text-slate-600 uppercase tracking-wide">Security Feature</h4><p className="text-xs text-slate-400 mt-1">Digital Excise Hologram</p></div>
-                <BatchLabel gtin={formData.gtin} lot={formData.lotNumber} expiry={formData.expiryDate} productName={formData.productName} />
+                <BatchLabel 
+                    gtin={formData.gtin} 
+                    lot={formData.lotNumber} 
+                    expiry={formData.expiryDate} 
+                    productName={formData.productName} 
+                    status={formData.isDutyPaid ? BatchStatus.DUTY_PAID : BatchStatus.BONDED}
+                />
                 <div className="mt-8 text-center px-4"><p className="text-xs text-slate-400 leading-relaxed">This QR represents the State Excise Hologram. It must be affixed to every case before leaving the bonded warehouse.</p></div>
             </div>
           </div>
