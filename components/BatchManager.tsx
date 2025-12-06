@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Batch, UserRole, BatchStatus, GSTDetails, EWayBill, ReturnReason } from '../types';
 import { LedgerService } from '../services/ledgerService';
 import { AuthService } from '../services/authService';
-import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp, AlertTriangle, MapPin, DollarSign, Printer, X } from 'lucide-react';
+import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp, AlertTriangle, MapPin, DollarSign, Printer, X, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BatchLabel from './BatchLabel';
 import TransferModal from './TransferModal'; 
@@ -32,6 +32,9 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
 
   // Print States
   const [showPrintModal, setShowPrintModal] = useState(false);
+
+  // Filter State
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const [loading, setLoading] = useState(true);
 
@@ -258,13 +261,32 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
       {activeTab === 'inventory' && (
       <>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row items-center gap-4 justify-between">
-            <div className="flex items-center space-x-4 w-full md:w-auto flex-1">
-                <Search className="text-slate-400 shrink-0" size={20} />
-                <input 
-                    type="text" 
-                    placeholder="Search stock..." 
-                    className="flex-1 outline-none text-slate-700 placeholder-slate-400 min-w-0"
-                />
+            <div className="flex items-center gap-4 w-full md:w-auto flex-1">
+                <div className="flex items-center space-x-3 w-full md:w-auto flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <Search className="text-slate-400 shrink-0" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Search stock..." 
+                        className="flex-1 outline-none text-slate-700 bg-transparent placeholder-slate-400 min-w-0 text-sm"
+                    />
+                </div>
+                
+                {/* Status Filter */}
+                <div className="relative shrink-0">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Filter size={16} className="text-slate-400" />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="pl-10 pr-8 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
+                    >
+                        <option value="ALL">All Status</option>
+                        {Object.values(BatchStatus).map((status) => (
+                           <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
             
             {selectedBatchIds.length > 0 && (
@@ -307,7 +329,9 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                    {batches.map((batch) => {
+                    {batches
+                      .filter(b => statusFilter === 'ALL' || b.status === statusFilter)
+                      .map((batch) => {
                         const canTransfer = batch.currentOwnerGLN === user.gln && batch.status !== 'SOLD' && batch.status !== 'IN_TRANSIT' && batch.status !== 'RETURNED' && batch.status !== 'RECALLED';
                         const isSelected = selectedBatchIds.includes(batch.batchID);
                         
@@ -397,6 +421,16 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                             </td>
                         </tr>
                     )})}
+                    {batches.filter(b => statusFilter === 'ALL' || b.status === statusFilter).length === 0 && (
+                        <tr>
+                            <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                <div className="flex flex-col items-center gap-2">
+                                    <Package size={32} className="opacity-20" />
+                                    <p>No batches found with the selected filter.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
                 </table>
             </div>

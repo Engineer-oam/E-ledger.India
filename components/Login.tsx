@@ -76,15 +76,39 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setLoading(true);
+    
+    // Step 1: Verify Identity
+    if (resetStep === 1) {
+        if (resetGln.length < 5) {
+            setError('Invalid License No / GLN format.');
+            return;
+        }
+        setLoading(true);
+        try {
+            const exists = await AuthService.checkUser(resetGln);
+            if (exists) {
+                setResetStep(2);
+                setSuccess('Identity Verified.');
+            } else {
+                setError('License No / GLN not found in registry.');
+            }
+        } catch (err) {
+            setError('Verification failed.');
+        } finally {
+            setLoading(false);
+        }
+        return;
+    }
 
+    // Step 2: Update Password
+    setLoading(true);
     try {
       if (newPassword.length < 4) throw new Error("Password too short.");
       if (newPassword !== confirmPassword) throw new Error("Passwords mismatch.");
 
       const result = await AuthService.resetPassword(resetGln, newPassword);
       if (result) {
-        setSuccess('Password reset. Please login.');
+        setSuccess('Password reset successfully. Please login.');
         setTimeout(() => {
             setView('login');
             setGln(resetGln);
@@ -152,17 +176,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       )}
 
       {/* Login Card */}
-      {/* Increased width to max-w-md (approx 448px) for wider look */}
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
+      <div className="max-w-[540px] w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
         <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 z-20 p-2 bg-slate-800/50 hover:bg-slate-800 text-white rounded-full backdrop-blur-sm transition-colors">
           <Settings size={16} />
         </button>
 
-        {/* Reduced vertical padding (p-6) for shorter height */}
         <div className="bg-slate-900 p-6 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="relative z-10">
-            {/* Smaller icon container and margin */}
             <div className="inline-block p-2.5 bg-indigo-600 rounded-2xl mb-2 shadow-lg shadow-indigo-900/50 transform rotate-3">
               {view === 'login' ? <Stamp size={24} className="text-white" /> : <KeyRound size={24} className="text-white" />}
             </div>
@@ -171,7 +192,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </div>
         
-        {/* Reduced padding p-6 */}
         <div className="p-6">
           {!useRemote && (
             <div className="mb-4 flex flex-col gap-2">
@@ -207,7 +227,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={gln}
                   onChange={(e) => setGln(e.target.value)}
-                  // Reduced padding py-2
                   className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition font-mono text-sm"
                   placeholder="0000000000000"
                 />
@@ -217,7 +236,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Password</label>
                   <button type="button" onClick={() => { setView('forgot'); setError(''); }} className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold">Forgot?</button>
                 </div>
-                {/* Reduced padding py-2 */}
                 <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition text-sm" placeholder="••••••••" />
               </div>
 
@@ -226,7 +244,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-600 cursor-pointer select-none">Remember GLN</label>
               </div>
 
-              {/* Reduced button padding py-2.5 */}
               <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center space-x-2 transform hover:translate-y-[-1px] text-sm">
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <><span>Secure Login</span><ArrowRight size={16} /></>}
               </button>
@@ -238,9 +255,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <p className="text-xs text-slate-600 text-center mb-2 leading-relaxed">Enter your License Number to verify identity.</p>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">License / GLN</label>
-                    <input type="text" required value={resetGln} onChange={(e) => setResetGln(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+                    <input type="text" autoFocus required value={resetGln} onChange={(e) => setResetGln(e.target.value)} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
                   </div>
-                  <button type="button" onClick={() => { if(resetGln.length >= 8) setResetStep(2); else setError('Invalid Format'); }} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg text-sm">Verify Identity</button>
+                  <button type="submit" disabled={loading} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg text-sm flex items-center justify-center gap-2">
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : 'Verify Identity'}
+                  </button>
                 </>
               )}
 
