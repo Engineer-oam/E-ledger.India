@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Server, Database, Save, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Server, Database, Save, CheckCircle2, AlertTriangle, RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const SystemSettings: React.FC = () => {
@@ -23,8 +23,6 @@ const SystemSettings: React.FC = () => {
   const testConnection = async () => {
     setConnectionStatus('unknown');
     try {
-      // Just try to fetch batches list anonymously or similar endpoint
-      // For this test we assume backend is running
       const res = await fetch(`${apiUrl}/batches`);
       if (res.ok) {
         setConnectionStatus('connected');
@@ -40,12 +38,17 @@ const SystemSettings: React.FC = () => {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-        <Server className="text-slate-600" />
-        <span>System Architecture Settings</span>
-      </h2>
+      <div className="flex items-center space-x-4 mb-8">
+        <div className="bg-slate-800 p-3 rounded-xl text-white">
+          <Settings size={32} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">System Config</h2>
+          <p className="text-slate-500 text-sm">System Architecture & Backend Settings</p>
+        </div>
+      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
         <div className="bg-slate-900 p-6 text-white">
           <h3 className="font-bold text-lg">Backend Configuration</h3>
           <p className="text-slate-400 text-sm mt-1">
@@ -55,7 +58,6 @@ const SystemSettings: React.FC = () => {
 
         <div className="p-8 space-y-8 w-full">
           
-          {/* Mode Toggle */}
           <div className="flex items-start gap-4">
             <div className={`mt-1 p-2 rounded-lg ${useRemote ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
               <Database size={24} />
@@ -76,9 +78,8 @@ const SystemSettings: React.FC = () => {
             </div>
           </div>
 
-          {/* API Config */}
           {useRemote && (
-            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 animate-in fade-in">
+            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 animate-in fade-in w-full">
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Backend API URL</label>
               <div className="flex gap-2">
                 <input 
@@ -96,7 +97,6 @@ const SystemSettings: React.FC = () => {
                 </button>
               </div>
               
-              {/* Connection Feedback */}
               {connectionStatus === 'connected' && (
                 <div className="mt-3 flex items-center gap-2 text-green-600 text-sm font-medium">
                   <CheckCircle2 size={16} />

@@ -232,7 +232,7 @@ const FinancialRecords: React.FC<FinancialRecordsProps> = ({ user }) => {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Financial Transaction History</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Duty & Tax Logs</h2>
           <p className="text-slate-500 text-sm">Ledger of Invoices, Returns & Receipts</p>
         </div>
         
@@ -266,7 +266,7 @@ const FinancialRecords: React.FC<FinancialRecordsProps> = ({ user }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
         {loading ? (
            <div className="p-12 text-center text-slate-500">Scanning blockchain for financial events...</div>
         ) : (

@@ -75,7 +75,7 @@ const SSCCManager: React.FC<SSCCManagerProps> = ({ user }) => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
            <h2 className="text-2xl font-bold text-slate-800">Logistics Units (SSCC)</h2>
            <p className="text-slate-500 text-sm">Aggregation & Pallet Management</p>
@@ -97,7 +97,7 @@ const SSCCManager: React.FC<SSCCManagerProps> = ({ user }) => {
       </div>
 
       {activeTab === 'create' && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-in fade-in slide-in-from-bottom-2">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 animate-in fade-in slide-in-from-bottom-2 w-full">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
              <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
                 <Package size={24} />
@@ -170,7 +170,7 @@ const SSCCManager: React.FC<SSCCManagerProps> = ({ user }) => {
       )}
 
       {activeTab === 'list' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 w-full">
           {units.map(unit => (
             <div key={unit.sscc} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col hover:shadow-md transition-shadow group">
                <div className="flex justify-between items-start mb-4">
@@ -210,7 +210,7 @@ const SSCCManager: React.FC<SSCCManagerProps> = ({ user }) => {
             </div>
           ))}
           {units.length === 0 && (
-            <div className="col-span-full p-16 text-center bg-slate-50 rounded-xl border-2 border-slate-200 border-dashed">
+            <div className="col-span-full p-16 text-center bg-slate-50 rounded-xl border-2 border-slate-200 border-dashed w-full">
                <div className="inline-block p-4 bg-white rounded-full mb-3 shadow-sm">
                  <Box size={32} className="text-slate-300" />
                </div>

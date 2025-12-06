@@ -20,7 +20,7 @@ interface DashboardProps {
 }
 
 const StatCard = ({ title, value, icon: Icon, color, subtitle }: { title: string; value: string | number; icon: any; color: string; subtitle?: string }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between transition-all hover:shadow-md">
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between transition-all hover:shadow-md w-full">
     <div>
       <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
       <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
@@ -74,7 +74,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   return (
     <div className="w-full space-y-8 pb-12">
       {/* Real-time Infrastructure Status */}
-      <div className="bg-slate-900 text-white rounded-lg p-4 flex items-center justify-between shadow-lg">
+      <div className="bg-slate-900 text-white rounded-lg p-4 flex items-center justify-between shadow-lg w-full">
           <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                   <span className="relative flex h-3 w-3">
@@ -101,15 +101,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
         <StatCard title="Total Volume" value={totalBatches} icon={Wine} color="bg-indigo-500" subtitle="Batches on Chain" />
         <StatCard title="Bonded (Unpaid)" value={bondedCount} icon={Landmark} color="bg-amber-500" subtitle="Pending Duty" />
         <StatCard title="Duty Paid" value={dutyPaidCount} icon={Stamp} color="bg-emerald-500" subtitle="Market Ready" />
         <StatCard title="Hologram Usage" value={`${integrityRate}%`} icon={ScanBarcode} color="bg-blue-500" subtitle="Secure Labeling" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6 w-full">
            <h3 className="text-lg font-bold text-slate-800 mb-6">Revenue & Stock Flow</h3>
            <div className="h-72 w-full">
              <ResponsiveContainer width="100%" height="100%">
@@ -138,7 +138,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
            </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 w-full">
             <h3 className="text-lg font-bold text-slate-800 mb-4">Stock Distribution</h3>
             <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">

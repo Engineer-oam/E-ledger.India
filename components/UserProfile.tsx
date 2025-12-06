@@ -42,9 +42,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdate }) => {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">User Profile</h2>
+      <div className="flex items-center space-x-4 mb-8">
+        <div className="bg-slate-800 p-3 rounded-xl text-white">
+          <UserCircle size={32} />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">User Profile</h2>
+          <p className="text-slate-500 text-sm">Manage account and organization details</p>
+        </div>
+      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
         {/* Header / Banner */}
         <div className="bg-slate-900 p-8 text-white flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
           <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-3xl font-bold shrink-0">

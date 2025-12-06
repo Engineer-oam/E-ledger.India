@@ -16,7 +16,7 @@ const NetworkDirectory: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
              <Building2 className="text-blue-600" />
@@ -36,9 +36,9 @@ const NetworkDirectory: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 w-full">
         {filteredUsers.map(user => (
-          <div key={user.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors flex items-start space-x-4">
+          <div key={user.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors flex items-start space-x-4 w-full">
              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 shrink-0">
                {user.role === UserRole.MANUFACTURER ? <Building2 size={24} /> : 
                 user.role === UserRole.REGULATOR ? <Shield size={24} /> : <BadgeCheck size={24} />}
