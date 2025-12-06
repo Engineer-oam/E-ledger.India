@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Batch, UserRole, BatchStatus, GSTDetails, EWayBill, ReturnReason } from '../types';
 import { LedgerService } from '../services/ledgerService';
 import { AuthService } from '../services/authService';
-import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp } from 'lucide-react';
+import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BatchLabel from './BatchLabel';
 import TransferModal from './TransferModal'; 
@@ -19,8 +20,16 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
   
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  
+  // Return States
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedBatchForReturn, setSelectedBatchForReturn] = useState<Batch | null>(null);
+
+  // Recall States
+  const [showRecallModal, setShowRecallModal] = useState(false);
+  const [selectedBatchForRecall, setSelectedBatchForRecall] = useState<Batch | null>(null);
+  const [recallReason, setRecallReason] = useState('');
+
   const [loading, setLoading] = useState(true);
 
   // Form State including Excise Fields
@@ -121,6 +130,26 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
     }
   };
 
+  const handleRecallSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBatchForRecall || !recallReason) return;
+    
+    try {
+      await LedgerService.recallBatch(
+        selectedBatchForRecall.batchID,
+        recallReason,
+        user
+      );
+      toast.error(`BATCH RECALLED: ${selectedBatchForRecall.batchID}`);
+      setShowRecallModal(false);
+      setSelectedBatchForRecall(null);
+      setRecallReason('');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Recall failed');
+    }
+  };
+
   const handleAutoFill = () => {
     const products = [
       'Royal Reserve Whisky', 'Old Monk Rum', 'Kingfisher Lager', 'Sula Shiraz', 'Blue Riband Gin'
@@ -156,12 +185,13 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
       case BatchStatus.RECEIVED: return 'bg-indigo-100 text-indigo-600';
       case BatchStatus.SOLD: return 'bg-gray-100 text-gray-500';
       case BatchStatus.QUARANTINED: return 'bg-red-100 text-red-600';
+      case BatchStatus.RECALLED: return 'bg-red-600 text-white';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
             <h2 className="text-2xl font-bold text-slate-800">Spirits Inventory</h2>
@@ -240,8 +270,14 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                     {batches.map((batch) => {
-                        const canTransfer = batch.currentOwnerGLN === user.gln && batch.status !== 'SOLD' && batch.status !== 'IN_TRANSIT' && batch.status !== 'RETURNED';
+                        const canTransfer = batch.currentOwnerGLN === user.gln && batch.status !== 'SOLD' && batch.status !== 'IN_TRANSIT' && batch.status !== 'RETURNED' && batch.status !== 'RECALLED';
                         const isSelected = selectedBatchIds.includes(batch.batchID);
+                        
+                        // Recall Logic: Manufacturer or Regulator can recall any time (if not already recalled)
+                        const canRecall = batch.status !== 'RECALLED' && (
+                           (user.role === UserRole.MANUFACTURER && batch.manufacturerGLN === user.gln) ||
+                           user.role === UserRole.REGULATOR
+                        );
 
                         return (
                         <tr key={batch.batchID} className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-indigo-50/50' : ''}`}>
@@ -299,6 +335,20 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                                     </>
                                 )}
                                 
+                                {canRecall && (
+                                    <button 
+                                        onClick={() => {
+                                            setSelectedBatchForRecall(batch);
+                                            setShowRecallModal(true);
+                                        }}
+                                        className="text-red-600 hover:text-red-800 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                                        title="Initiate Product Recall"
+                                    >
+                                        <AlertTriangle size={14} />
+                                        <span>Recall</span>
+                                    </button>
+                                )}
+
                                 <Link 
                                     to={`/trace/${batch.batchID}`}
                                     className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-medium"
@@ -518,6 +568,59 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                         className="px-4 py-2 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 shadow-md"
                       >
                           Confirm Return
+                      </button>
+                  </div>
+              </form>
+           </div>
+        </div>
+      )}
+
+      {/* RECALL MODAL */}
+      {showRecallModal && selectedBatchForRecall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border-t-4 border-red-600">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-red-700 flex items-center gap-2">
+                   <AlertTriangle className="fill-red-100" />
+                   <span>EMERGENCY RECALL</span>
+                </h3>
+                <button onClick={() => setShowRecallModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              </div>
+              
+              <div className="bg-red-50 p-4 rounded-lg mb-6 border border-red-100">
+                 <p className="text-sm font-bold text-red-900">Recalling: {selectedBatchForRecall.productName}</p>
+                 <p className="text-xs text-red-700 font-mono mt-1">Batch ID: {selectedBatchForRecall.batchID}</p>
+                 <p className="text-xs text-red-600 mt-2">
+                    Warning: This action is irreversible. The batch status will be updated to RECALLED on the ledger immediately.
+                 </p>
+              </div>
+
+              <form onSubmit={handleRecallSubmit} className="space-y-4">
+                  <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Reason for Recall</label>
+                      <textarea 
+                        required
+                        className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 outline-none h-32"
+                        placeholder="Describe the defect, contamination, or regulatory violation..."
+                        value={recallReason}
+                        onChange={e => setRecallReason(e.target.value)}
+                      />
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-2">
+                      <button 
+                        type="button"
+                        onClick={() => setShowRecallModal(false)}
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
+                      >
+                          Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md flex items-center gap-2"
+                      >
+                          <AlertTriangle size={16} />
+                          <span>CONFIRM RECALL</span>
                       </button>
                   </div>
               </form>

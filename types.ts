@@ -1,3 +1,4 @@
+
 export enum UserRole {
   MANUFACTURER = 'MANUFACTURER', // Context: Distillery / Brewery
   DISTRIBUTOR = 'DISTRIBUTOR',   // Context: Bonded Warehouse / Wholesaler
@@ -21,7 +22,7 @@ export enum BatchStatus {
 
 export interface TraceEvent {
   eventID: string;
-  type: 'MANUFACTURE' | 'DISPATCH' | 'RECEIVE' | 'SALE' | 'AGGREGATION' | 'TRANSFORMATION' | 'RETURN' | 'RETURN_RECEIPT' | 'SHIPMENT_RECEIPT' | 'DUTY_PAYMENT' | 'PERMIT_ISSUE';
+  type: 'MANUFACTURE' | 'DISPATCH' | 'RECEIVE' | 'SALE' | 'AGGREGATION' | 'TRANSFORMATION' | 'RETURN' | 'RETURN_RECEIPT' | 'SHIPMENT_RECEIPT' | 'DUTY_PAYMENT' | 'PERMIT_ISSUE' | 'RECALL';
   timestamp: string;
   actorGLN: string;
   actorName: string;

@@ -68,7 +68,7 @@ const SSCCManager: React.FC<SSCCManagerProps> = ({ user }) => {
   };
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-800">Logistics Units (SSCC)</h2>
         <div className="flex space-x-2">

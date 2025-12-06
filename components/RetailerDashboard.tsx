@@ -99,7 +99,7 @@ const RetailerDashboard: React.FC<RetailerDashboardProps> = ({ user }) => {
   const soldCount = inventory.filter(b => b.status === BatchStatus.SOLD).length;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {showScanner && (
         <QRScanner onScan={handleCameraScan} onClose={() => setShowScanner(false)} />
       )}

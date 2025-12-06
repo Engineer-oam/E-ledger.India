@@ -98,7 +98,7 @@ const DistributorDashboard: React.FC<DistributorDashboardProps> = ({ user }) => 
   const recentReceipts = batches.filter(b => b.status === BatchStatus.RECEIVED).slice(0, 5);
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-7xl mx-auto space-y-8">
       {showScanner && (
         <QRScanner 
           onScan={handleCameraScan} 

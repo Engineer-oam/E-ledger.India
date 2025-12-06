@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Batch, User, UserRole, BatchStatus } from '../types';
 import { LedgerService } from '../services/ledgerService';
@@ -130,7 +131,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const COLORS = ['#94a3b8', '#f59e0b', '#10b981', '#6366f1'];
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="max-w-7xl mx-auto space-y-8 pb-12">
       {/* Primary Ops Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Spirit Volume" value={totalBatches} icon={Wine} color="bg-indigo-500" subtitle="Batches Registered" />

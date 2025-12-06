@@ -366,6 +366,37 @@ export const LedgerService = {
     return updatedBatch;
   },
 
+  recallBatch: async (batchID: string, reason: string, actor: User): Promise<boolean> => {
+    await delay(DELAY_MS);
+    const batch = await LedgerService.getBatchByID(batchID);
+    if (!batch) throw new Error("Batch not found");
+
+    // Check Authorization: Only Manufacturer or Regulator can recall
+    if (actor.role !== UserRole.REGULATOR && batch.manufacturerGLN !== actor.gln) {
+        throw new Error("Unauthorized: Only the Manufacturer or Regulator can initiate a recall.");
+    }
+
+    const recallEvent: TraceEvent = {
+      eventID: `evt-${Date.now()}`,
+      type: 'RECALL',
+      timestamp: new Date().toISOString(),
+      actorGLN: actor.gln,
+      actorName: actor.orgName,
+      location: actor.role === UserRole.REGULATOR ? 'Excise HQ' : 'Quality Assurance Dept',
+      txHash: `0x${Math.random().toString(16).slice(2)}`,
+      metadata: { reason: reason, initiatorRole: actor.role }
+    };
+
+    const updatedBatch = {
+      ...batch,
+      status: BatchStatus.RECALLED,
+      trace: [...batch.trace, recallEvent]
+    };
+
+    await LedgerService.updateBatch(updatedBatch);
+    return true;
+  },
+
   getLogisticsUnits: async (user: User): Promise<LogisticsUnit[]> => {
     if (isRemote()) {
         try {
