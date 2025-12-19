@@ -15,6 +15,8 @@ import VRSManager from './components/VRSManager';
 import NetworkDirectory from './components/NetworkDirectory';
 import FinancialRecords from './components/FinancialRecords';
 import SystemSettings from './components/SystemSettings';
+import ERPManager from './components/ERPManager';
+import ERPModule from './components/ERPModule';
 import { User } from './types';
 import { ToastContainer } from 'react-toastify';
 
@@ -69,39 +71,10 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <ToastContainer 
-        position="top-right" 
-        autoClose={4000} 
-        hideProgressBar={false} 
-        newestOnTop={true} 
-        closeOnClick 
-        rtl={false} 
-        pauseOnFocusLoss 
-        draggable 
-        pauseOnHover 
-        theme="colored" 
-      />
+      <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} newestOnTop={true} closeOnClick theme="colored" />
       <Routes>
-        <Route 
-          path="/login" 
-          element={
-            currentUser ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Login onLogin={handleLogin} />
-            )
-          } 
-        />
-        <Route 
-          path="/signup" 
-          element={
-            currentUser ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Signup />
-            )
-          } 
-        />
+        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} />
+        <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
 
         <Route
           path="/*"
@@ -111,6 +84,7 @@ const App: React.FC = () => {
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard user={currentUser} />} />
+                  <Route path="/erp" element={<ERPModule user={currentUser} />} />
                   <Route path="/batches" element={<BatchManager user={currentUser} />} />
                   <Route path="/trace/:id" element={<TraceVisualizer user={currentUser} />} />
                   <Route path="/assistant" element={<Assistant />} />
@@ -122,6 +96,7 @@ const App: React.FC = () => {
                   <Route path="/vrs" element={<VRSManager user={currentUser} />} />
                   <Route path="/network" element={<NetworkDirectory />} />
                   <Route path="/financials" element={<FinancialRecords user={currentUser} />} />
+                  <Route path="/erp-settings" element={<ERPManager user={currentUser} />} />
                   <Route path="/settings" element={<SystemSettings />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>

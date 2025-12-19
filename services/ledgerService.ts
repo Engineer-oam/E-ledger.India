@@ -1,5 +1,5 @@
 
-import { Batch, BatchStatus, TraceEvent, User, UserRole, LogisticsUnit, VerificationRequest, VerificationStatus, PaymentDetails, GSTDetails, EWayBill, ReturnReason } from '../types';
+import { Batch, BatchStatus, TraceEvent, User, UserRole, LogisticsUnit, VerificationRequest, VerificationStatus, PaymentDetails, GSTDetails, EWayBill, ReturnReason, Sector, ERPType } from '../types';
 
 const LEDGER_STORAGE_KEY = 'eledger_data';
 const SSCC_STORAGE_KEY = 'eledger_sscc';
@@ -111,8 +111,19 @@ export const LedgerService = {
 
   verifyByHash: async (hash: string): Promise<Batch | undefined> => {
     await delay(DELAY_MS);
-    // In MVP, we scan all batches for the integrity hash. Optimized backend would index this.
-    const batches = await LedgerService.getBatches({ role: UserRole.REGULATOR, gln: 'admin', name: '', id: '', orgName: '' });
+    // Fixed: Added missing erpType and erpStatus properties to the User object in getBatches call
+    const batches = await LedgerService.getBatches({ 
+      role: UserRole.REGULATOR, 
+      gln: 'admin', 
+      name: 'System Admin', 
+      id: 'system-admin', 
+      orgName: 'Regulator Body',
+      country: 'IN',
+      sector: Sector.EXCISE,
+      positionLabel: 'Auditor',
+      erpType: ERPType.MANUAL,
+      erpStatus: 'CONNECTED'
+    });
     return batches.find(b => b.integrityHash === hash || b.blockchainId === hash);
   },
 
@@ -126,6 +137,7 @@ export const LedgerService = {
     // Merkle Root simulation: The first hash of the chain
     const initialTraceHash = await sha256(`GENESIS:${genesisHash}`);
 
+    // Fixed: Added missing sector and country properties from actor context
     const newBatch: Batch = {
       batchID: batchID,
       blockchainId: blockchainId,
@@ -140,6 +152,8 @@ export const LedgerService = {
       currentOwnerGLN: actor.gln,
       status: batchData.status || BatchStatus.BONDED,
       integrityHash: genesisHash, // Hologram ID
+      sector: actor.sector,
+      country: actor.country,
       alcoholContent: batchData.alcoholContent,
       category: batchData.category,
       dutyPaid: batchData.dutyPaid || false,
@@ -352,7 +366,7 @@ export const LedgerService = {
         actorName: actor.orgName,
         location: 'Returns',
         txHash: '', previousHash: '',
-        metadata: { reason, refundAmount: refundValue }
+        metadata: { reason, refundAmount: refundValue, returnTo: toGLN }
     };
     const updated = { ...batch, status: BatchStatus.IN_TRANSIT, intendedRecipientGLN: toGLN };
     await LedgerService.updateBatch(updated, event);
@@ -361,7 +375,6 @@ export const LedgerService = {
 
   // Logistics Units
   getLogisticsUnits: async (user: User): Promise<LogisticsUnit[]> => {
-    // ... same as before
     try {
         const stored = localStorage.getItem(SSCC_STORAGE_KEY);
         const units: LogisticsUnit[] = stored ? JSON.parse(stored) : [];
@@ -386,8 +399,7 @@ export const LedgerService = {
   
   // VRS
   submitVerificationRequest: async (gtin: string, lot: string, requester: User): Promise<VerificationRequest> => {
-     // ... logic ...
-     return { reqID: '1', requesterGLN: requester.gln, responderGLN: 'system', gtin, serialOrLot: lot, timestamp: new Date().toISOString(), status: VerificationStatus.VERIFIED };
+     return { reqID: `VRS-${Date.now()}`, requesterGLN: requester.gln, responderGLN: 'system', gtin, serialOrLot: lot, timestamp: new Date().toISOString(), status: VerificationStatus.VERIFIED, responseMessage: 'Saleable Return Verified' };
   },
   getVerificationHistory: async (user: User) => []
 };

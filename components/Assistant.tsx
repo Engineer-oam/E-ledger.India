@@ -16,7 +16,7 @@ const Assistant: React.FC = () => {
     {
       id: 'welcome',
       sender: 'ai',
-      text: "Hello! I'm your Supply Chain AI Analyst. I have read-access to the current blockchain ledger state. Ask me about inventory levels, potential expiry risks, or batch history.",
+      text: "Hello! I'm your E-Ledger AI Analyst. I have real-time access to the current supply chain state. Ask me about inventory risks, compliance status, or batch tracing.",
       timestamp: new Date()
     }
   ]);
@@ -69,7 +69,7 @@ const Assistant: React.FC = () => {
           <h2 className="font-bold text-slate-800">E-Ledger Analyst</h2>
           <p className="text-xs text-slate-500 flex items-center gap-1">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            Powered by Gemini 2.5 Flash
+            Blockchain Intelligence Node
           </p>
         </div>
       </div>
@@ -106,7 +106,7 @@ const Assistant: React.FC = () => {
           type="text" 
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about batch status, expiry risks, or supply efficiency..."
+          placeholder="Analyze batch risks, inventory efficiency, or compliance..."
           className="flex-1 border border-slate-300 rounded-full px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition"
         />
         <button 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { LedgerService } from '../services/ledgerService';
 import { Batch } from '../types';
@@ -44,7 +45,7 @@ const ProductVerifier: React.FC = () => {
         setResult(batch);
         setQuery(searchQuery.trim());
       } else {
-        setError('Invalid Hologram. This bottle may be illicit or counterfeit.');
+        setError('Invalid Identification. This product may be illicit or counterfeit.');
       }
     } catch (err) {
       setError('Verification Error.');
@@ -68,11 +69,11 @@ const ProductVerifier: React.FC = () => {
         />
       )}
 
-      {/* Standardized Header (Text Only) */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-           <h2 className="text-2xl font-bold text-slate-800">Excise Hologram Verify</h2>
-           <p className="text-slate-500 text-sm">Official State Excise Verification Portal</p>
+           <h2 className="text-2xl font-bold text-slate-800">Authenticity Verification</h2>
+           <p className="text-slate-500 text-sm">Official E-Ledger Integrity Portal</p>
         </div>
       </div>
 
@@ -84,7 +85,7 @@ const ProductVerifier: React.FC = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter Batch ID or Hash..."
+              placeholder="Enter Product Hash or Batch ID..."
               className="w-full pl-12 pr-12 py-3.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition font-mono text-sm shadow-sm"
             />
             <button
@@ -101,7 +102,7 @@ const ProductVerifier: React.FC = () => {
             disabled={loading || !query}
             className="w-full md:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
           >
-            {loading ? 'Verifying...' : 'Check Status'}
+            {loading ? 'Verifying...' : 'Check Authenticity'}
           </button>
         </form>
 
@@ -116,11 +117,11 @@ const ProductVerifier: React.FC = () => {
                 <h3 className="text-2xl font-black text-red-700 uppercase tracking-wide">Counterfeit Alert</h3>
                 <p className="text-lg font-bold text-red-900 mt-1">{duplicateAlert.msg}</p>
                 <p className="text-sm text-red-800 mt-2 leading-relaxed">
-                  This specific ID has already been marked as <strong>SOLD</strong> in the supply chain. 
-                  Multiple scans of the same ID indicate a cloned label or refilled bottle.
+                  This specific identifier has already been marked as <strong>SOLD</strong> or <strong>CONSUMED</strong>. 
+                  Multiple scans of the same ID indicate a cloned label or refilled container.
                 </p>
                 <div className="mt-4 inline-block bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-md">
-                  ⛔ STOP: DO NOT PURCHASE
+                  ⛔ STOP: DO NOT PURCHASE / USE
                 </div>
               </div>
             </div>
@@ -130,7 +131,7 @@ const ProductVerifier: React.FC = () => {
         {searched && !loading && !result && !error && !duplicateAlert.detected && (
            <div className="p-16 text-center text-slate-400">
               <Search size={48} className="mx-auto mb-4 opacity-20" />
-              <p>No records found. Please check the ID.</p>
+              <p>No records found on the global ledger. Please check the ID.</p>
            </div>
         )}
 
@@ -147,7 +148,6 @@ const ProductVerifier: React.FC = () => {
             
             {/* Certificate Header */}
             <div className={`relative overflow-hidden p-8 text-white ${result.dutyPaid ? 'bg-emerald-600' : 'bg-amber-500'}`}>
-                {/* Guilloche Pattern Background Simulation */}
                 <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
                     backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2.5px)',
                     backgroundSize: '20px 20px'
@@ -157,14 +157,14 @@ const ProductVerifier: React.FC = () => {
                     <div>
                         <div className="flex items-center space-x-2 font-black opacity-90 uppercase tracking-widest text-xs mb-2">
                             <ShieldCheck size={16} />
-                            <span>{result.dutyPaid ? 'Official Excise Document' : 'Bonded Warehouse Receipt'}</span>
+                            <span>Verified Integrity Document</span>
                         </div>
                         <h3 className="text-3xl font-bold tracking-tight">{result.productName}</h3>
                         <p className="text-white/80 font-mono mt-1 text-sm">{result.batchID}</p>
                     </div>
                     <div className="hidden sm:flex flex-col items-end">
                         <Award size={48} className="text-white/30 mb-2" />
-                        <span className="text-2xl font-black uppercase tracking-widest">{result.dutyPaid ? 'DUTY PAID' : 'UNPAID'}</span>
+                        <span className="text-2xl font-black uppercase tracking-widest">{result.dutyPaid ? 'COMPLIANT' : 'BONDED'}</span>
                     </div>
                 </div>
             </div>
@@ -173,19 +173,19 @@ const ProductVerifier: React.FC = () => {
               <div className="space-y-6">
                 <h4 className="font-bold text-slate-800 uppercase tracking-wider text-xs border-b border-slate-100 pb-2 flex items-center gap-2">
                     <Fingerprint size={16} className="text-indigo-500" />
-                    Product DNA
+                    Product DNA (GS1)
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Alcohol Strength</p>
-                    <p className="font-bold text-lg text-slate-800">{result.alcoholContent}% <span className="text-xs text-slate-500">ABV</span></p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Potency / Strength</p>
+                    <p className="font-bold text-lg text-slate-800">{result.alcoholContent || 'N/A'}<span className="text-xs text-slate-500 ml-1">Unit</span></p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Volume</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Volume / Qty</p>
                     <p className="font-bold text-lg text-slate-800">{result.quantity} <span className="text-xs text-slate-500">{result.unit}</span></p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 col-span-2">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Expiry / Bottling</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Expiry / Manufacture</p>
                     <p className="font-bold text-lg text-slate-800">{result.expiryDate}</p>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ const ProductVerifier: React.FC = () => {
                   <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
                     <div className="flex items-center space-x-2 text-indigo-700 mb-2">
                       <Fingerprint size={18} />
-                      <span className="font-bold text-sm">Blockchain Integrity Check</span>
+                      <span className="font-bold text-sm">Blockchain Integrity Seal</span>
                     </div>
                     <p className="font-mono text-[10px] break-all bg-white p-2 rounded border border-indigo-200 text-slate-500 shadow-inner">
                       {result.integrityHash}
@@ -206,7 +206,7 @@ const ProductVerifier: React.FC = () => {
               <div>
                 <h4 className="font-bold text-slate-800 uppercase tracking-wider text-xs border-b border-slate-100 pb-2 mb-4 flex items-center gap-2">
                     <MapPin size={16} className="text-indigo-500" />
-                    Chain of Custody
+                    Immutable Chain of Custody
                 </h4>
                 <div className="space-y-6 relative pl-6 border-l-2 border-slate-200 ml-2">
                   {result.trace.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((event, idx) => (
@@ -231,9 +231,8 @@ const ProductVerifier: React.FC = () => {
               </div>
             </div>
             
-            {/* Footer */}
             <div className="bg-slate-50 p-4 border-t border-slate-100 text-center">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Verified by State Excise Blockchain Network</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Verified via E-Ledger Distributed Network</p>
             </div>
           </div>
         )}

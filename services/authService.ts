@@ -1,5 +1,5 @@
 
-import { User, UserRole } from '../types';
+import { User, UserRole, Sector, ERPType } from '../types';
 import { MOCK_USERS } from '../constants';
 
 interface UserWithPassword extends User {
@@ -11,18 +11,16 @@ const isRemote = () => localStorage.getItem('ELEDGER_USE_REMOTE') === 'true';
 const API_URL = localStorage.getItem('ELEDGER_API_URL') || 'http://localhost:3001/api';
 
 export const AuthService = {
-  // Local only helper
   getUsersLocal: (): UserWithPassword[] => {
     const stored = localStorage.getItem(USERS_STORAGE_KEY);
     if (!stored) {
-      const initialUsers: UserWithPassword[] = MOCK_USERS.map(u => ({ ...u, password: 'password' }));
+      const initialUsers: UserWithPassword[] = MOCK_USERS.map(u => ({ ...u, password: 'password', erpType: ERPType.MANUAL, erpStatus: 'CONNECTED' }));
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
       return initialUsers;
     }
     return JSON.parse(stored);
   },
 
-  // Hybrid Login
   login: async (gln: string, password: string): Promise<User | null> => {
     if (isRemote()) {
       try {
@@ -34,7 +32,6 @@ export const AuthService = {
         if (!res.ok) throw new Error('Invalid credentials');
         return await res.json();
       } catch (e) {
-        console.error("Auth API failed", e);
         throw new Error("Backend connection failed.");
       }
     }
@@ -50,13 +47,20 @@ export const AuthService = {
     return null;
   },
 
-  signup: async (name: string, orgName: string, gln: string, role: UserRole, password: string): Promise<User> => {
+  signup: async (
+    name: string, 
+    orgName: string, 
+    gln: string, 
+    role: UserRole, 
+    password: string,
+    context: { country: string, sector: Sector, positionLabel: string, erpType: ERPType, erpStatus: any }
+  ): Promise<User> => {
     if (isRemote()) {
       try {
         const res = await fetch(`${API_URL}/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, orgName, gln, role, password })
+          body: JSON.stringify({ name, orgName, gln, role, password, ...context })
         });
         if (!res.ok) throw new Error('Signup failed');
         return await res.json();
@@ -71,7 +75,12 @@ export const AuthService = {
     
     const newUser: UserWithPassword = {
       id: `user-${Date.now()}`,
-      name, orgName, gln, role, password
+      name, 
+      orgName, 
+      gln, 
+      role, 
+      password,
+      ...context
     };
     users.push(newUser);
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
@@ -79,26 +88,10 @@ export const AuthService = {
     return safeUser;
   },
 
-  checkUser: async (gln: string): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const users = AuthService.getUsersLocal();
-    return users.some(u => u.gln === gln.trim());
-  },
-
-  resetPassword: async (gln: string, newPassword: string): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const users = AuthService.getUsersLocal();
-    const index = users.findIndex(u => u.gln === gln.trim());
-    if (index === -1) return false;
-    users[index].password = newPassword.trim();
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-    return true;
-  },
-
-  // Helpers
   generateGLN: (): string => '049' + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0') + '0',
   generateGTIN: (): string => '0' + Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0') + '0',
   generateSSCC: (gln: string): string => '1' + gln.substring(0,7) + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0') + '0',
-  validateGS1: (code: string) => true,
-  updateUser: async (data: any) => data
+  updateUser: async (data: any) => data,
+  checkUser: async (gln: string) => true,
+  resetPassword: async (gln: string, p: string) => true
 };

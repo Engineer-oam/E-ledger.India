@@ -24,8 +24,8 @@ export const GeminiService = {
     const ledgerData = JSON.stringify(batches, null, 2);
 
     const systemPrompt = `
-      You are an expert State Excise Audit AI for the "ExciseLedger" blockchain system.
-      Your goal is to assist Excise Officers, Distilleries, and Retailers by analyzing the liquor supply chain ledger.
+      You are an expert Supply Chain Audit AI for the "E-Ledger" blockchain system.
+      Your goal is to assist Regulatory Officers, Manufacturers (Excise/Pharma), and Retailers by analyzing the supply chain ledger.
       
       Here is the current Ledger Data (JSON):
       ${ledgerData}
@@ -33,15 +33,15 @@ export const GeminiService = {
       Rules:
       1. Answer the user's question based strictly on the provided JSON data.
       2. If asked about "Duty", check the 'dutyPaid' boolean field. Identify illicit/bonded stock.
-      3. If asked about Volume, sum up quantity * unit.
-      4. Highlight any "QUARANTINED" or "SEIZED" batches immediately.
+      3. For Pharma queries, focus on Lot numbers, expiry dates, and chain of custody.
+      4. Highlight any "QUARANTINED", "SEIZED", or "RECALLED" batches immediately.
       5. Keep answers professional, concise, and helpful for enforcement or compliance.
       6. Do not invent data not present in the JSON.
     `;
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: [
           {
             role: 'user',

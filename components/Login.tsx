@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { AuthService } from '../services/authService';
 import { User } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Loader2, ArrowRight, Lock, KeyRound, CheckCircle2, Settings, Server, AlertTriangle, Save, Stamp } from 'lucide-react';
+// Added missing RefreshCw import
+import { ShieldCheck, Loader2, ArrowRight, Lock, KeyRound, CheckCircle2, Settings, Server, AlertTriangle, Save, Stamp, RefreshCw } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -141,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="bg-slate-900 p-4 text-white flex justify-between items-center">
                <h3 className="font-bold flex items-center gap-2">
                  <Server size={18} />
-                 <span>Server Settings</span>
+                 <span>Network Settings</span>
                </h3>
                <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-white">✕</button>
             </div>
@@ -150,24 +151,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                  <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                  <p>
                    <strong>Demo Mode (Local):</strong> Data stored in browser only.<br/><br/>
-                   <strong>Remote Mode:</strong> Connects to centralized Excise Database.
+                   <strong>Mainnet Mode:</strong> Connects to centralized E-Ledger Database.
                  </p>
                </div>
                
                <div className="space-y-3">
                  <label className="flex items-center gap-3 cursor-pointer p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
                     <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" checked={useRemote} onChange={e => setUseRemote(e.target.checked)} />
-                    <span className="font-medium text-slate-700">Use Remote Excise Server</span>
+                    <span className="font-medium text-slate-700">Use Remote Network Node</span>
                  </label>
 
                  <div className={`transition-opacity ${useRemote ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">API Endpoint</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Node API Endpoint</label>
                     <input type="text" value={apiUrl} onChange={e => setApiUrl(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm font-mono" />
                  </div>
                </div>
 
                <button onClick={saveSettings} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg flex justify-center items-center gap-2 mt-4">
-                 <Save size={18} />
+                 <RefreshCw size={18} />
                  <span>Save Configuration</span>
                </button>
             </div>
@@ -175,8 +176,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
       )}
 
-      {/* Login Card */}
-      <div className="max-w-[540px] w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
+      {/* Login Card - Reduced width by 25% (540px -> 405px) */}
+      <div className="max-w-[405px] w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
         <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 z-20 p-2 bg-slate-800/50 hover:bg-slate-800 text-white rounded-full backdrop-blur-sm transition-colors">
           <Settings size={16} />
         </button>
@@ -187,8 +188,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="inline-block p-2.5 bg-indigo-600 rounded-2xl mb-2 shadow-lg shadow-indigo-900/50 transform rotate-3">
               {view === 'login' ? <Stamp size={24} className="text-white" /> : <KeyRound size={24} className="text-white" />}
             </div>
-            <h1 className="text-2xl font-extrabold text-white mb-0.5 tracking-tight">ExciseLedger</h1>
-            <p className="text-slate-400 text-xs font-medium">State Supply Chain Portal</p>
+            <h1 className="text-2xl font-extrabold text-white mb-0.5 tracking-tight">E-Ledger</h1>
+            <p className="text-slate-400 text-xs font-medium">Supply Chain Integrity Portal</p>
           </div>
         </div>
         
@@ -294,8 +295,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           {view === 'login' && (
             <div className="mt-4 pt-4 border-t border-slate-100 text-center">
-              <p className="text-slate-400 text-xs mb-1">New Licensee?</p>
-              <Link to="/signup" className="text-indigo-600 hover:text-indigo-800 font-bold text-xs transition-colors uppercase tracking-wide">Apply for Account</Link>
+              <p className="text-slate-400 text-xs mb-1">New Trading Partner?</p>
+              <Link to="/signup" className="text-indigo-600 hover:text-indigo-800 font-bold text-xs transition-colors uppercase tracking-wide">Register Account</Link>
             </div>
           )}
         </div>

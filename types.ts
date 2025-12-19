@@ -1,36 +1,51 @@
 
+export enum Sector {
+  EXCISE = 'EXCISE',
+  PHARMA = 'PHARMA',
+  FMCG = 'FMCG',
+  AGRICULTURE = 'AGRICULTURE'
+}
+
+export enum ERPType {
+  SAP = 'SAP / ORACLE',
+  TALLY = 'TALLY',
+  ZOHO = 'ZOHO / ODOO',
+  MARG = 'MARG ERP',
+  MANUAL = 'NO ERP (MANUAL)'
+}
+
 export enum UserRole {
-  MANUFACTURER = 'MANUFACTURER', // Context: Distillery / Brewery
-  DISTRIBUTOR = 'DISTRIBUTOR',   // Context: Bonded Warehouse / Wholesaler
-  RETAILER = 'RETAILER',         // Context: Wine Shop / Bar
-  REGULATOR = 'REGULATOR',       // Context: Excise Inspector / Officer
+  MANUFACTURER = 'MANUFACTURER',
+  DISTRIBUTOR = 'DISTRIBUTOR',
+  RETAILER = 'RETAILER',
+  REGULATOR = 'REGULATOR',
   AUDITOR = 'AUDITOR'
 }
 
 export enum BatchStatus {
-  CREATED = 'DISTILLED',
+  CREATED = 'CREATED',
   IN_TRANSIT = 'IN_TRANSIT',
   RECEIVED = 'RECEIVED',
   SOLD = 'SOLD',
   RECALLED = 'RECALLED',
   DESTROYED = 'DESTROYED',
   RETURNED = 'RETURNED',
-  QUARANTINED = 'SEIZED', // Excise term
-  BONDED = 'BONDED',      // New: In Bonded Warehouse (Duty Unpaid)
-  DUTY_PAID = 'DUTY_PAID', // New: Duty Paid, ready for retail
-  CONSUMED = 'CONSUMED'   // Bottle opened/scanned by consumer
+  QUARANTINED = 'QUARANTINED',
+  BONDED = 'BONDED',
+  DUTY_PAID = 'DUTY_PAID',
+  CONSUMED = 'CONSUMED'
 }
 
 export interface TraceEvent {
   eventID: string;
-  type: 'MANUFACTURE' | 'DISPATCH' | 'RECEIVE' | 'SALE' | 'AGGREGATION' | 'TRANSFORMATION' | 'RETURN' | 'RETURN_RECEIPT' | 'SHIPMENT_RECEIPT' | 'DUTY_PAYMENT' | 'PERMIT_ISSUE' | 'RECALL' | 'POS_SCAN';
+  type: string;
   timestamp: string;
   actorGLN: string;
   actorName: string;
   location: string;
   metadata?: Record<string, any>;
-  txHash: string; // The SHA-256 Hash of this specific event
-  previousHash: string; // The Hash of the previous event in the chain
+  txHash: string;
+  previousHash: string;
 }
 
 export interface Batch {
@@ -48,33 +63,19 @@ export interface Batch {
   productName: string;
   integrityHash?: string; 
   
-  // Excise Specific Fields
-  alcoholContent?: number; // ABV %
-  category?: 'IMFL' | 'BEER' | 'COUNTRY_LIQUOR' | 'WINE' | 'SPIRIT';
-  dutyPaid?: boolean;
+  // Dynamic Context
+  sector: Sector;
+  country: string;
   
-  // Blockchain Core
-  blockchainId: string; // Unique Immutable Ledger ID
-  genesisHash: string;  // Hash of the creation block
-}
-
-export interface AuditLog {
-  id: string;
-  timestamp: string;
-  userGLN: string;
-  action: string;
-  resourceId?: string;
-  details: string;
-  ipAddress?: string;
-}
-
-export interface LogisticsUnit {
-  sscc: string;
-  creatorGLN: string;
-  status: 'CREATED' | 'SHIPPED' | 'RECEIVED';
-  contents: string[];
-  createdDate: string;
-  txHash: string;
+  // Industry Specific
+  alcoholContent?: number; 
+  category?: string;
+  dutyPaid?: boolean;
+  dosageForm?: string; // Pharma specific
+  serialNumber?: string; // Pharma specific (SGTIN)
+  
+  blockchainId: string;
+  genesisHash: string;
 }
 
 export interface User {
@@ -83,23 +84,60 @@ export interface User {
   role: UserRole;
   gln: string;
   orgName: string;
+  country: string;
+  sector: Sector;
+  positionLabel: string;
+  erpType: ERPType;
+  erpStatus: 'CONNECTED' | 'DISCONNECTED' | 'PENDING';
 }
 
-export interface DashboardMetrics {
-  totalBatches: number;
-  activeShipments: number;
-  alerts: number;
-  complianceScore: number;
+// Internal ERP Data Structures
+export interface ProductionOrder {
+  id: string;
+  productName: string;
+  plannedQty: number;
+  actualQty: number;
+  startDate: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  sectorSpecifics: Record<string, any>;
 }
 
-// --- NEW FOR MEDILEDGER PARITY ---
+export interface InventoryItem {
+  id: string;
+  sku: string;
+  name: string;
+  stockLevel: number;
+  minLevel: number;
+  unit: string;
+}
+
+export interface SaleOrder {
+  id: string;
+  customerName: string;
+  totalAmount: number;
+  date: string;
+  items: Array<{name: string, qty: number, price: number}>;
+  syncStatus: 'SYNCED' | 'PENDING';
+}
+
+export interface CountryConfig {
+  code: string;
+  name: string;
+  sectors: {
+    [key in Sector]: {
+      roles: Array<{
+        role: UserRole;
+        label: string;
+        description: string;
+      }>
+    }
+  }
+}
 
 export enum VerificationStatus {
-  PENDING = 'PENDING',
   VERIFIED = 'VERIFIED',
   FAILED = 'FAILED',
-  SUSPECT = 'SUSPECT', // Potential Counterfeit / Illicit
-  DUPLICATE = 'DUPLICATE_SCAN' // Anti-Counterfeit Flag
+  SUSPECT = 'SUSPECT'
 }
 
 export interface VerificationRequest {
@@ -113,28 +151,18 @@ export interface VerificationRequest {
   responseMessage?: string;
 }
 
-// --- SUPPLY CHAIN FINANCE ---
-export enum PaymentStatus {
-  PAID = 'PAID',
-  CREDIT = 'CREDIT',
-  PENDING = 'PENDING',
-  UNPAID = 'UNPAID',
-  PARTIAL = 'PARTIAL',
-  WAIVED = 'WAIVED'
-}
-
-export interface PaymentDetails {
-  status: PaymentStatus;
-  method: 'CASH' | 'CARD' | 'INSURANCE' | 'INVOICE' | 'CHALLAN';
-  amount: number;
-  currency: string;
-  timestamp: string;
+export enum ReturnReason {
+  DAMAGED = 'DAMAGED',
+  EXPIRED = 'EXPIRED',
+  RECALLED = 'RECALLED',
+  WRONG_ITEM = 'WRONG_ITEM',
+  OTHER = 'OTHER'
 }
 
 export interface GSTDetails {
   hsnCode: string;
   taxableValue: number;
-  taxRate: number; 
+  taxRate: number;
   taxAmount: number;
   invoiceNo: string;
   invoiceDate: string;
@@ -150,10 +178,29 @@ export interface EWayBill {
   generatedDate: string;
 }
 
-export enum ReturnReason {
-  DAMAGED = 'DAMAGED',
-  EXPIRED = 'EXPIRED',
-  UNSOLD = 'UNSOLD',
-  RECALLED = 'RECALLED',
-  INCORRECT_ITEM = 'INCORRECT_ITEM'
+export enum PaymentStatus {
+  PAID = 'PAID',
+  UNPAID = 'UNPAID',
+  PARTIAL = 'PARTIAL',
+  WAIVED = 'WAIVED',
+  CREDIT = 'CREDIT'
+}
+
+export interface PaymentDetails {
+  totalAmount: number;
+  amountPaid: number;
+  amountRemaining: number;
+  waivedAmount: number;
+  status: PaymentStatus;
+  method: string;
+  notes?: string;
+}
+
+export interface LogisticsUnit {
+  sscc: string;
+  creatorGLN: string;
+  status: 'CREATED' | 'IN_TRANSIT' | 'RECEIVED' | 'DEPARTED';
+  contents: string[];
+  createdDate: string;
+  txHash: string;
 }
