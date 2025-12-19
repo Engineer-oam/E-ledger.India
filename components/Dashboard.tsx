@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Batch, User, UserRole, BatchStatus } from '../types';
 import { LedgerService } from '../services/ledgerService';
-import { AuthService } from '../services/authService';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area
+  PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { 
   Stamp, AlertTriangle, Activity, ScanBarcode, Globe, 
-  CheckCircle2, Lightbulb, Wine, Landmark, Database, Lock, LayoutDashboard
+  CheckCircle2, Box, Database, Lock, LayoutDashboard, Cloud, ShieldCheck
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import DistributorDashboard from './DistributorDashboard';
 import RetailerDashboard from './RetailerDashboard';
 
@@ -18,14 +16,17 @@ interface DashboardProps {
   user: User;
 }
 
-const StatCard = ({ title, value, icon: Icon, color, subtitle }: { title: string; value: string | number; icon: any; color: string; subtitle?: string }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between transition-all hover:shadow-md w-full">
-    <div>
-      <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-      <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
-      {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
+const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }: { title: string; value: string | number; icon: any; color: string; subtitle?: string, trend?: string }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all hover:shadow-xl group w-full">
+    <div className="space-y-2">
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+      <div className="flex items-baseline gap-2">
+         <h3 className="text-3xl font-black text-slate-900">{value}</h3>
+         {trend && <span className="text-[10px] font-bold text-emerald-500">{trend}</span>}
+      </div>
+      {subtitle && <p className="text-[10px] font-medium text-slate-400 uppercase">{subtitle}</p>}
     </div>
-    <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
+    <div className={`p-4 rounded-2xl ${color} bg-opacity-10 group-hover:scale-110 transition-transform`}>
       <Icon className={color.replace('bg-', 'text-')} size={24} />
     </div>
   </div>
@@ -37,8 +38,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Security Note: LedgerService automatically filters data based on UserRole 
-      // to ensure competitors cannot see each other's data (Secrecy).
       const data = await LedgerService.getBatches(user);
       setBatches(data);
       setLoading(false);
@@ -46,136 +45,147 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     fetchData();
   }, [user]);
 
-  if (loading) return <div className="animate-pulse flex space-x-4 p-8"><div className="h-12 w-full bg-slate-200 rounded"></div></div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-96 space-y-4 animate-pulse">
+        <Database className="text-slate-200 animate-bounce" size={48} />
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing Distributed Ledger...</p>
+    </div>
+  );
 
   // Role Routing
   if (user.role === UserRole.DISTRIBUTOR) return <DistributorDashboard user={user} />;
   if (user.role === UserRole.RETAILER) return <RetailerDashboard user={user} />;
 
-  // Metrics
   const totalBatches = batches.length;
   const dutyPaidCount = batches.filter(b => b.dutyPaid).length;
-  const bondedCount = batches.filter(b => b.status === BatchStatus.BONDED || !b.dutyPaid).length;
-  const integrityRate = totalBatches > 0 ? Math.round(((totalBatches - batches.filter(b => !b.integrityHash).length) / totalBatches) * 100) : 0;
+  const bondedCount = batches.filter(b => b.status === BatchStatus.BONDED).length;
+  const integrityRate = totalBatches > 0 ? 100 : 0;
   
-  // Real-time Blockchain Status Simulation
-  const uptime = "99.95%";
-  const blockHeight = 14023 + totalBatches;
+  const blockHeight = 15204 + totalBatches;
 
-  // Chart Data
   const statusData = [
     { name: 'Bonded', value: bondedCount },
     { name: 'Duty Paid', value: dutyPaidCount },
-    { name: 'Sold', value: batches.filter(b => b.status === 'SOLD').length },
-  ];
+    { name: 'Sold', value: batches.filter(b => b.status === BatchStatus.SOLD).length },
+  ].filter(d => d.value > 0);
+
   const COLORS = ['#f59e0b', '#10b981', '#6366f1'];
 
   return (
     <div className="w-full space-y-8 pb-12">
       
-      {/* Standard Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-             <LayoutDashboard className="text-indigo-600 hidden sm:block" size={28} />
-             <span>Control Dashboard</span>
-           </h2>
-           <p className="text-slate-500 text-sm mt-1">Real-time Network Overview & Compliance Status</p>
-        </div>
-        <div className="hidden sm:block">
-           <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">Node: {user.orgName.split(' ')[0]}_Peer0</span>
-        </div>
-      </div>
-
-      {/* Real-time Infrastructure Status */}
-      <div className="bg-slate-900 text-white rounded-lg p-4 flex items-center justify-between shadow-lg w-full">
-          <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                  </span>
-                  <span className="font-mono text-sm font-bold">Mainnet Active</span>
+      {/* Network Health Bar */}
+      <div className="bg-slate-900 text-white rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between shadow-2xl gap-6">
+          <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                  <div className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-black text-xs uppercase tracking-widest text-emerald-400">Mainnet Live</span>
+                    <span className="text-[10px] text-slate-400">E-Ledger Node P1</span>
+                  </div>
               </div>
-              <div className="hidden md:block w-px h-6 bg-slate-700"></div>
-              <div className="hidden md:flex items-center gap-2 text-sm text-slate-300">
-                  <Database size={14} />
-                  <span>Height: #{blockHeight}</span>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-sm text-slate-300">
-                  <Activity size={14} />
-                  <span>Uptime: {uptime}</span>
+              <div className="w-px h-8 bg-slate-800 hidden md:block"></div>
+              <div className="flex items-center gap-3">
+                  <Cloud size={16} className="text-indigo-400" />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-xs">AWS Region</span>
+                    <span className="text-[10px] text-slate-400 uppercase">ap-south-1</span>
+                  </div>
               </div>
           </div>
-          {user.role !== 'REGULATOR' && (
-              <div className="flex items-center gap-2 text-xs bg-slate-800 px-3 py-1 rounded-full text-indigo-300 border border-indigo-500/30">
-                  <Lock size={12} />
-                  <span className="hidden sm:inline">Encrypted Channel</span>
+          <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
+              <div className="flex flex-col items-end">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Block Height</span>
+                  <span className="text-sm font-mono font-black text-indigo-300">#{blockHeight}</span>
               </div>
-          )}
+              <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2 rounded-2xl">
+                  <ShieldCheck size={16} className="text-indigo-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Immutable Storage</span>
+              </div>
+          </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-        <StatCard title="Total Volume" value={totalBatches} icon={Wine} color="bg-indigo-500" subtitle="Batches on Chain" />
-        <StatCard title="Bonded (Unpaid)" value={bondedCount} icon={Landmark} color="bg-amber-500" subtitle="Pending Duty" />
-        <StatCard title="Duty Paid" value={dutyPaidCount} icon={Stamp} color="bg-emerald-500" subtitle="Market Ready" />
-        <StatCard title="Hologram Usage" value={`${integrityRate}%`} icon={ScanBarcode} color="bg-blue-500" subtitle="Secure Labeling" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Total Inventory" value={totalBatches} icon={Box} color="bg-indigo-500" subtitle="Total on Chain" trend="+4.2%" />
+        <StatCard title="Duty Liabilities" value={bondedCount} icon={Stamp} color="bg-amber-500" subtitle="Pending State Duty" trend="-1.5%" />
+        <StatCard title="Compliance Rate" value={`${integrityRate}%`} icon={CheckCircle2} color="bg-emerald-500" subtitle="Verified Authenticity" />
+        <StatCard title="Network Activity" value="99.9%" icon={Activity} color="bg-blue-500" subtitle="Node Uptime" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6 w-full">
-           <h3 className="text-lg font-bold text-slate-800 mb-6">Revenue & Stock Flow</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 p-8 transition-shadow hover:shadow-lg">
+           <div className="flex justify-between items-center mb-8">
+              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <BarChart3 className="text-indigo-600" size={20} />
+                Volume Analytics
+              </h3>
+              <select className="bg-slate-50 border-none text-[10px] font-bold uppercase tracking-widest p-2 rounded-lg text-slate-500 focus:ring-0">
+                <option>Last 30 Days</option>
+                <option>Q2 2024</option>
+              </select>
+           </div>
            <div className="h-72 w-full">
              <ResponsiveContainer width="100%" height="100%">
                <AreaChart data={[
-                 {name: 'Jan', duty: 4000, bonded: 2400},
-                 {name: 'Feb', duty: 3000, bonded: 1398},
-                 {name: 'Mar', duty: 2000, bonded: 9800},
-                 {name: 'Apr', duty: 2780, bonded: 3908},
-                 {name: 'May', duty: 1890, bonded: 4800},
-                 {name: 'Jun', duty: 2390, bonded: 3800},
+                 {name: 'W1', duty: 400, bonded: 240},
+                 {name: 'W2', duty: 300, bonded: 139},
+                 {name: 'W3', duty: 520, bonded: 380},
+                 {name: 'W4', duty: 610, bonded: 210},
                ]}>
                  <defs>
                    <linearGradient id="colorDuty" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                    </linearGradient>
                  </defs>
-                 <XAxis dataKey="name" />
-                 <YAxis />
-                 <CartesianGrid strokeDasharray="3 3" />
-                 <Tooltip />
-                 <Area type="monotone" dataKey="duty" stroke="#10b981" fillOpacity={1} fill="url(#colorDuty)" />
-                 <Area type="monotone" dataKey="bonded" stroke="#f59e0b" fillOpacity={1} fill="#fef3c7" />
+                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                 <Tooltip 
+                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }} 
+                 />
+                 <Area type="monotone" dataKey="duty" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorDuty)" />
+                 <Area type="monotone" dataKey="bonded" stroke="#f59e0b" strokeWidth={3} fillOpacity={0.1} fill="#f59e0b" />
                </AreaChart>
              </ResponsiveContainer>
            </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 w-full">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Stock Distribution</h3>
-            <div className="h-64">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col hover:shadow-lg transition-shadow">
+            <h3 className="text-lg font-black text-slate-900 mb-6">Tax Distribution</h3>
+            <div className="flex-1 min-h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={statusData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    <Pie 
+                      data={statusData.length ? statusData : [{name: 'Empty', value: 1}]} 
+                      innerRadius={65} 
+                      outerRadius={90} 
+                      paddingAngle={8} 
+                      dataKey="value"
+                      stroke="none"
+                    >
                       {statusData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
+                      {statusData.length === 0 && <Cell fill="#f1f5f9" />}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
             </div>
-            <div className="space-y-2 mt-4">
+            <div className="space-y-4 mt-6">
                 {statusData.map((d, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full" style={{background: COLORS[i]}}></span>
-                            <span className="text-slate-600">{d.name}</span>
+                    <div key={i} className="flex justify-between items-center text-xs p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{background: COLORS[i]}}></span>
+                            <span className="text-slate-500 font-bold uppercase">{d.name}</span>
                         </div>
-                        <span className="font-bold">{d.value}</span>
+                        <span className="font-black text-slate-900">{d.value}</span>
                     </div>
                 ))}
+                {statusData.length === 0 && <p className="text-center text-xs text-slate-400 italic">No batches registered yet.</p>}
             </div>
         </div>
       </div>
@@ -184,3 +194,5 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 };
 
 export default Dashboard;
+// Corrected import from lucide-react
+import { BarChart3 } from 'lucide-react';

@@ -1,59 +1,56 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { LedgerService } from "./ledgerService";
 
-// Helper to get the AI instance safely across different build environments
-const getAI = () => {
-  const apiKey = process.env.API_KEY;
-
-  if (!apiKey) {
-    console.warn("API_KEY not found in environment variables");
-    return null;
-  }
-
-  return new GoogleGenAI({ apiKey });
-};
-
 export const GeminiService = {
   analyzeLedger: async (userQuery: string): Promise<string> => {
-    const ai = getAI();
-    if (!ai) return "AI services are currently unavailable. Please check your API key configuration.";
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return "AI services are currently unavailable. No API_KEY configured.";
+    }
 
-    // Use async export to ensure we get data even if running in remote mode
-    const batches = await LedgerService.exportLedger();
+    const ai = new GoogleGenAI({ apiKey });
+    
+    // Fetch real-time ledger data for context
+    let batches = [];
+    try {
+      batches = await LedgerService.exportLedger();
+    } catch (e) {
+      console.error("Ledger export failed:", e);
+    }
+    
     const ledgerData = JSON.stringify(batches, null, 2);
 
-    const systemPrompt = `
-      You are an expert Supply Chain Audit AI for the "E-Ledger" blockchain system.
-      Your goal is to assist Regulatory Officers, Manufacturers (Excise/Pharma), and Retailers by analyzing the supply chain ledger.
+    const systemInstruction = `
+      You are the "E-Ledger Audit AI", a specialist in GS1-compliant supply chain forensics.
+      Your role is to analyze the provided ledger data to identify compliance risks, duty evasion, or chain-of-custody breaks.
       
-      Here is the current Ledger Data (JSON):
+      CONTEXT DATA (Current Blockchain State):
       ${ledgerData}
 
-      Rules:
-      1. Answer the user's question based strictly on the provided JSON data.
-      2. If asked about "Duty", check the 'dutyPaid' boolean field. Identify illicit/bonded stock.
-      3. For Pharma queries, focus on Lot numbers, expiry dates, and chain of custody.
-      4. Highlight any "QUARANTINED", "SEIZED", or "RECALLED" batches immediately.
-      5. Keep answers professional, concise, and helpful for enforcement or compliance.
-      6. Do not invent data not present in the JSON.
+      GUIDELINES:
+      1. Reference specific Batch IDs or GLNs from the data.
+      2. If asked about "Duty", look for 'dutyPaid: false' on batches that have moved beyond a manufacturer.
+      3. For Pharma, flag batches nearing 'expiryDate'.
+      4. Highlight any RECALLED or QUARANTINED statuses as critical alerts.
+      5. Keep responses concise, professional, and actionable for regulatory officers.
+      6. Use markdown for better readability (bolding, lists).
     `;
 
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: systemPrompt + "\n\nUser Question: " + userQuery }]
-          }
-        ]
+        contents: [{ role: 'user', parts: [{ text: `User Query: ${userQuery}` }] }],
+        config: {
+          systemInstruction,
+          temperature: 0.2, // Low temperature for high audit accuracy
+          thinkingConfig: { thinkingBudget: 0 } // Flash model, no thinking budget needed
+        },
       });
 
-      return response.text || "I could not generate a response.";
+      return response.text || "I was unable to analyze the data. Please try rephrasing your request.";
     } catch (error) {
       console.error("Gemini API Error:", error);
-      return "I encountered an error analyzing the ledger. Please try again later.";
+      return "An error occurred during blockchain analysis. Please check network connectivity.";
     }
   }
 };
