@@ -4,7 +4,7 @@ import { User, UserRole, Sector } from '../types';
 import { 
   LayoutDashboard, Truck, FileText, LogOut, Bot, ScanLine, Box, ShieldCheck, 
   Building2, Menu, X, Wallet, Settings, Wine, Stamp, Pill, Globe, ShoppingBag, Leaf, Cpu,
-  Database
+  Database, Cog
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -25,7 +25,7 @@ const NavItem = ({ to, icon: Icon, label, active, onClick }: { to: string; icon:
     }`}
   >
     <Icon size={20} className={`shrink-0 ${active ? 'animate-pulse' : ''}`} />
-    <span className="font-medium">{label}</span>
+    <span className="font-medium text-sm">{label}</span>
   </Link>
 );
 
@@ -85,7 +85,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Network Panel" active={location.pathname === '/dashboard'} onClick={() => setIsMobileMenuOpen(false)} />
           
           {!isAuthority && (
-            <NavItem to="/erp" icon={Database} label="Internal ERP" active={location.pathname === '/erp'} onClick={() => setIsMobileMenuOpen(false)} />
+            <>
+              <NavItem to="/erp" icon={Database} label="Internal ERP" active={location.pathname === '/erp'} onClick={() => setIsMobileMenuOpen(false)} />
+              <NavItem to="/erp-settings" icon={Cog} label="ERP Integration" active={location.pathname === '/erp-settings'} onClick={() => setIsMobileMenuOpen(false)} />
+            </>
           )}
 
           <NavItem to="/batches" icon={branding.icon} label={branding.label} active={location.pathname === '/batches'} onClick={() => setIsMobileMenuOpen(false)} />
@@ -130,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               <Menu size={24} />
             </button>
             <h2 className="text-lg font-bold text-slate-800 capitalize truncate flex items-center gap-2">
-              {location.pathname.replace('/', '') || 'Dashboard'}
+              {location.pathname.replace('/', '').replace('-', ' ') || 'Dashboard'}
             </h2>
           </div>
           

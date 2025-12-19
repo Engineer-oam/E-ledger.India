@@ -176,8 +176,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
       )}
 
-      {/* Login Card - Reduced width by 25% (540px -> 405px) */}
-      <div className="max-w-[405px] w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
+      {/* Login Card - Reduced width to 315px */}
+      <div className="max-w-[315px] w-full bg-white rounded-3xl shadow-xl overflow-hidden transition-all duration-300 relative my-auto">
         <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 z-20 p-2 bg-slate-800/50 hover:bg-slate-800 text-white rounded-full backdrop-blur-sm transition-colors">
           <Settings size={16} />
         </button>
