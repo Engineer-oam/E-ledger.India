@@ -17,6 +17,7 @@ import FinancialRecords from './components/FinancialRecords';
 import SystemSettings from './components/SystemSettings';
 import ERPManager from './components/ERPManager';
 import ERPModule from './components/ERPModule';
+import BlockchainExplorer from './components/BlockchainExplorer';
 import { User } from './types';
 import { ToastContainer } from 'react-toastify';
 
@@ -97,6 +98,7 @@ const App: React.FC = () => {
                   <Route path="/network" element={<NetworkDirectory />} />
                   <Route path="/financials" element={<FinancialRecords user={currentUser} />} />
                   <Route path="/erp-settings" element={<ERPManager user={currentUser} />} />
+                  <Route path="/blockchain" element={<BlockchainExplorer />} />
                   <Route path="/settings" element={<SystemSettings />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>

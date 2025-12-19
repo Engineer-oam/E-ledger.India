@@ -46,6 +46,11 @@ export interface TraceEvent {
   metadata?: Record<string, any>;
   txHash: string;
   previousHash: string;
+  
+  // Return specific fields
+  returnReason?: ReturnReason;
+  returnQuantity?: number;
+  returnRecipientGLN?: string;
 }
 
 export interface Batch {
@@ -74,6 +79,15 @@ export interface Batch {
   dosageForm?: string; // Pharma specific
   serialNumber?: string; // Pharma specific (SGTIN)
   
+  // GST Compliance Fields
+  hsnCode?: string;
+  taxableValue?: number;
+  taxRate?: number;
+  taxAmount?: number;
+
+  // Return tracking
+  totalReturnedQuantity?: number;
+
   blockchainId: string;
   genesisHash: string;
 }

@@ -34,7 +34,7 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = RETR
     } catch (err) {
         if (retries > 0) {
             console.warn(`Retrying... attempts left: ${retries}`);
-            await delay(1000); // Exponential backoff simulation
+            await delay(1000); 
             return fetchWithRetry(url, options, retries - 1);
         }
         throw err;
@@ -77,11 +77,9 @@ export const LedgerService = {
     );
   },
 
-  // Optimized for AI Analysis
   exportLedger: async (): Promise<Batch[]> => {
     if (isRemote()) {
        try {
-         // Fetch all batches (Simulating Auditor View for AI)
          const API_URL = getApiUrl();
          const res = await fetch(`${API_URL}/batches?role=AUDITOR`); 
          if (res.ok) return await res.json();
@@ -91,7 +89,6 @@ export const LedgerService = {
   },
 
   getAllDataAsJson: (): string => {
-    // Legacy support (Synchronous local)
     const ledgerState = getLedgerState();
     return JSON.stringify(ledgerState, null, 2);
   },
@@ -111,7 +108,6 @@ export const LedgerService = {
 
   verifyByHash: async (hash: string): Promise<Batch | undefined> => {
     await delay(DELAY_MS);
-    // Fixed: Added missing erpType and erpStatus properties to the User object in getBatches call
     const batches = await LedgerService.getBatches({ 
       role: UserRole.REGULATOR, 
       gln: 'admin', 
@@ -134,10 +130,8 @@ export const LedgerService = {
     const batchID = `BATCH-${Date.now()}`;
     const blockchainId = `BLK-${genesisHash.substring(0,12)}`;
 
-    // Merkle Root simulation: The first hash of the chain
     const initialTraceHash = await sha256(`GENESIS:${genesisHash}`);
 
-    // Fixed: Added missing sector and country properties from actor context
     const newBatch: Batch = {
       batchID: batchID,
       blockchainId: blockchainId,
@@ -151,12 +145,17 @@ export const LedgerService = {
       manufacturerGLN: actor.gln,
       currentOwnerGLN: actor.gln,
       status: batchData.status || BatchStatus.BONDED,
-      integrityHash: genesisHash, // Hologram ID
+      integrityHash: genesisHash,
       sector: actor.sector,
       country: actor.country,
       alcoholContent: batchData.alcoholContent,
       category: batchData.category,
       dutyPaid: batchData.dutyPaid || false,
+      hsnCode: batchData.hsnCode,
+      taxableValue: batchData.taxableValue,
+      taxRate: batchData.taxRate,
+      taxAmount: batchData.taxAmount,
+      totalReturnedQuantity: 0,
       trace: [
         {
           eventID: `evt-${Date.now()}`,
@@ -166,12 +165,20 @@ export const LedgerService = {
           actorName: actor.orgName,
           location: 'Manufacturing Plant',
           txHash: initialTraceHash,
-          previousHash: '00000000000000000000000000000000', // Genesis block has no prev hash
-          metadata: { note: 'Blockchain Genesis Block', integrityHash: genesisHash }
+          previousHash: '00000000000000000000000000000000',
+          metadata: { 
+            note: 'Blockchain Genesis Block', 
+            integrityHash: genesisHash,
+            hsnCode: batchData.hsnCode,
+            taxRate: batchData.taxRate
+          }
         }
       ]
     };
     
+    const { BlockchainAPI } = await import('../blockchain/api');
+    await BlockchainAPI.submit({ action: 'CREATE_BATCH', batchID: newBatch.batchID, gtin: newBatch.gtin }, actor.gln);
+
     if (isRemote()) {
       const API_URL = getApiUrl();
       await fetchWithRetry(`${API_URL}/batches`, {
@@ -188,9 +195,7 @@ export const LedgerService = {
     return newBatch.batchID;
   },
 
-  // Generic update helper with Chain Hashing
   updateBatch: async (batch: Batch, newEvent: TraceEvent) => {
-    // 1. Calculate new hash linking to previous
     const lastEvent = batch.trace[batch.trace.length - 1];
     newEvent.previousHash = lastEvent.txHash;
     newEvent.txHash = await sha256(JSON.stringify(newEvent) + lastEvent.txHash);
@@ -199,6 +204,22 @@ export const LedgerService = {
         ...batch,
         trace: [...batch.trace, newEvent]
     };
+
+    // If metadata contains GST details, update the flat fields on the Batch for quick access
+    if (newEvent.metadata?.gst) {
+        updatedBatch.hsnCode = newEvent.metadata.gst.hsnCode;
+        updatedBatch.taxableValue = newEvent.metadata.gst.taxableValue;
+        updatedBatch.taxRate = newEvent.metadata.gst.taxRate;
+        updatedBatch.taxAmount = newEvent.metadata.gst.taxAmount;
+    }
+
+    // Accumulate returns if this is a return event
+    if (newEvent.type === 'RETURN' && newEvent.returnQuantity) {
+        updatedBatch.totalReturnedQuantity = (updatedBatch.totalReturnedQuantity || 0) + newEvent.returnQuantity;
+    }
+
+    const { BlockchainAPI } = await import('../blockchain/api');
+    await BlockchainAPI.submit({ action: newEvent.type, batchID: updatedBatch.batchID, txHash: newEvent.txHash }, newEvent.actorGLN);
 
     if (isRemote()) {
       const API_URL = getApiUrl();
@@ -209,7 +230,8 @@ export const LedgerService = {
           status: updatedBatch.status,
           currentOwnerGLN: updatedBatch.currentOwnerGLN,
           intendedRecipientGLN: updatedBatch.intendedRecipientGLN,
-          trace: updatedBatch.trace
+          trace: updatedBatch.trace,
+          totalReturnedQuantity: updatedBatch.totalReturnedQuantity
         })
       });
     } else {
@@ -223,7 +245,6 @@ export const LedgerService = {
     return updatedBatch;
   },
 
-  // POS API for High-Speed Verification
   checkPOSStatus: async (batchID: string, gln: string): Promise<{status: 'VALID' | 'INVALID' | 'DUPLICATE', message: string}> => {
       if(isRemote()) {
           try {
@@ -238,7 +259,6 @@ export const LedgerService = {
           } catch(e) { console.error(e); }
       }
       
-      // Local Fallback Logic
       const batch = await LedgerService.getBatchByID(batchID);
       if(!batch) return { status: 'INVALID', message: 'Not found' };
       if(batch.status === BatchStatus.SOLD) return { status: 'DUPLICATE', message: 'Anti-Counterfeit Alert: Already Sold' };
@@ -271,14 +291,14 @@ export const LedgerService = {
             actorGLN: actor.gln,
             actorName: actor.orgName,
             location: ewbPartial?.fromPlace || 'Distribution Center',
-            txHash: '', // Calculated in updateBatch
+            txHash: '',
             previousHash: '',
             metadata: { 
               recipient: toName, 
               recipientGLN: toGLN, 
               gst, 
               ewayBill: ewbPartial,
-              payment: paymentMeta // Included in blockchain metadata
+              payment: paymentMeta
             }
         };
 
@@ -310,7 +330,6 @@ export const LedgerService = {
   },
 
   sellBatch: async (batchID: string, actor: User): Promise<Batch> => {
-    // Pre-check for duplicate/sold status
     const check = await LedgerService.checkPOSStatus(batchID, actor.gln);
     if(check.status !== 'VALID') throw new Error(check.message);
 
@@ -326,7 +345,12 @@ export const LedgerService = {
       location: 'Point of Sale',
       txHash: '', 
       previousHash: '',
-      metadata: { type: 'Consumer Sale' }
+      metadata: { 
+        type: 'Consumer Sale',
+        taxableValue: batch.taxableValue,
+        taxAmount: batch.taxAmount,
+        hsnCode: batch.hsnCode
+      }
     };
 
     const updated = { ...batch, status: BatchStatus.SOLD };
@@ -355,25 +379,34 @@ export const LedgerService = {
     return true;
   },
   
-  returnBatch: async (batchID: string, toGLN: string, reason: ReturnReason, actor: User, refundValue?: number): Promise<boolean> => {
+  returnBatch: async (batchID: string, toGLN: string, reason: ReturnReason, quantity: number, actor: User, refundValue?: number): Promise<boolean> => {
     const batch = await LedgerService.getBatchByID(batchID);
     if (!batch) throw new Error("Batch not found");
+    
+    // Safety: Cannot return more than what's available
+    const available = batch.quantity - (batch.totalReturnedQuantity || 0);
+    if (quantity > available) throw new Error(`Insufficient quantity to return. Available: ${available}`);
+
     const event: TraceEvent = {
         eventID: `evt-${Date.now()}`,
         type: 'RETURN',
         timestamp: new Date().toISOString(),
         actorGLN: actor.gln,
         actorName: actor.orgName,
-        location: 'Returns',
-        txHash: '', previousHash: '',
-        metadata: { reason, refundAmount: refundValue, returnTo: toGLN }
+        location: 'Returns Handling',
+        txHash: '', 
+        previousHash: '',
+        returnReason: reason,
+        returnQuantity: quantity,
+        returnRecipientGLN: toGLN,
+        metadata: { refundAmount: refundValue }
     };
+    
     const updated = { ...batch, status: BatchStatus.IN_TRANSIT, intendedRecipientGLN: toGLN };
     await LedgerService.updateBatch(updated, event);
     return true;
   },
 
-  // Logistics Units
   getLogisticsUnits: async (user: User): Promise<LogisticsUnit[]> => {
     try {
         const stored = localStorage.getItem(SSCC_STORAGE_KEY);
@@ -397,7 +430,6 @@ export const LedgerService = {
     return sscc;
   },
   
-  // VRS
   submitVerificationRequest: async (gtin: string, lot: string, requester: User): Promise<VerificationRequest> => {
      return { reqID: `VRS-${Date.now()}`, requesterGLN: requester.gln, responderGLN: 'system', gtin, serialOrLot: lot, timestamp: new Date().toISOString(), status: VerificationStatus.VERIFIED, responseMessage: 'Saleable Return Verified' };
   },

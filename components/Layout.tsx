@@ -4,7 +4,7 @@ import { User, UserRole, Sector } from '../types';
 import { 
   LayoutDashboard, Truck, FileText, LogOut, Bot, ScanLine, Box, ShieldCheck, 
   Building2, Menu, X, Wallet, Settings, Wine, Stamp, Pill, Globe, ShoppingBag, Leaf, Cpu,
-  Database, Cog
+  Database, Cog, Link as LinkIcon
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -84,6 +84,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Network Panel" active={location.pathname === '/dashboard'} onClick={() => setIsMobileMenuOpen(false)} />
           
+          <NavItem to="/blockchain" icon={LinkIcon} label="Mainnet Explorer" active={location.pathname === '/blockchain'} onClick={() => setIsMobileMenuOpen(false)} />
+
           {!isAuthority && (
             <>
               <NavItem to="/erp" icon={Database} label="Internal ERP" active={location.pathname === '/erp'} onClick={() => setIsMobileMenuOpen(false)} />
