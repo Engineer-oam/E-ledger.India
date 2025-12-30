@@ -6,7 +6,7 @@ import Dashboard from './components/Dashboard';
 import BatchManager from './components/BatchManager';
 import TraceVisualizer from './components/TraceVisualizer';
 import Assistant from './components/Assistant';
-import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import Signup from './components/Signup';
 import UserProfile from './components/UserProfile';
 import ProductVerifier from './components/ProductVerifier';
@@ -74,8 +74,9 @@ const App: React.FC = () => {
     <Router>
       <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} newestOnTop={true} closeOnClick theme="colored" />
       <Routes>
-        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} />
+        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <LandingPage onLogin={handleLogin} />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <LandingPage onLogin={handleLogin} />} />
 
         <Route
           path="/*"
@@ -83,14 +84,12 @@ const App: React.FC = () => {
             currentUser ? (
               <Layout user={currentUser} onLogout={handleLogout}>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard user={currentUser} />} />
                   <Route path="/erp" element={<ERPModule user={currentUser} />} />
                   <Route path="/batches" element={<BatchManager user={currentUser} />} />
                   <Route path="/trace/:id" element={<TraceVisualizer user={currentUser} />} />
                   <Route path="/assistant" element={<Assistant />} />
                   <Route path="/transfers" element={<BatchManager user={currentUser} />} />
-                  <Route path="/reports" element={<Dashboard user={currentUser} />} />
                   <Route path="/profile" element={<UserProfile user={currentUser} onUpdate={handleUserUpdate} />} />
                   <Route path="/verify" element={<ProductVerifier />} />
                   <Route path="/sscc" element={<SSCCManager user={currentUser} />} />
@@ -104,7 +103,7 @@ const App: React.FC = () => {
                 </Routes>
               </Layout>
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />

@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Batch, User, UserRole, BatchStatus } from '../types';
 import { LedgerService } from '../services/ledgerService';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { 
-  Stamp, AlertTriangle, Activity, ScanBarcode, Globe, 
-  CheckCircle2, Box, Database, Lock, LayoutDashboard, Cloud, ShieldCheck
+  Stamp, Activity, Globe, 
+  CheckCircle2, Box, Database, Cloud, ShieldCheck, BarChart3
 } from 'lucide-react';
 import DistributorDashboard from './DistributorDashboard';
 import RetailerDashboard from './RetailerDashboard';
@@ -35,11 +35,13 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }: { title:
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCloud, setIsCloud] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       const data = await LedgerService.getBatches(user);
       setBatches(data);
+      setIsCloud(!['localhost', '127.0.0.1'].includes(window.location.hostname));
       setLoading(false);
     };
     fetchData();
@@ -52,47 +54,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     </div>
   );
 
-  // Role Routing
   if (user.role === UserRole.DISTRIBUTOR) return <DistributorDashboard user={user} />;
   if (user.role === UserRole.RETAILER) return <RetailerDashboard user={user} />;
 
   const totalBatches = batches.length;
-  const dutyPaidCount = batches.filter(b => b.dutyPaid).length;
   const bondedCount = batches.filter(b => b.status === BatchStatus.BONDED).length;
-  const integrityRate = totalBatches > 0 ? 100 : 0;
-  
   const blockHeight = 15204 + totalBatches;
 
   const statusData = [
     { name: 'Bonded', value: bondedCount },
-    { name: 'Duty Paid', value: dutyPaidCount },
     { name: 'Sold', value: batches.filter(b => b.status === BatchStatus.SOLD).length },
   ].filter(d => d.value > 0);
 
-  const COLORS = ['#f59e0b', '#10b981', '#6366f1'];
+  const COLORS = ['#f59e0b', '#6366f1', '#10b981'];
 
   return (
     <div className="w-full space-y-8 pb-12">
-      
       {/* Network Health Bar */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between shadow-2xl gap-6">
           <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
                   <div className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isCloud ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-3 w-3 ${isCloud ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-black text-xs uppercase tracking-widest text-emerald-400">Mainnet Live</span>
-                    <span className="text-[10px] text-slate-400">E-Ledger Node P1</span>
+                    <span className={`font-black text-xs uppercase tracking-widest ${isCloud ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {isCloud ? 'Mainnet Live' : 'Simulation Mode'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">Node ID: {user.gln.slice(-6)}</span>
                   </div>
               </div>
               <div className="w-px h-8 bg-slate-800 hidden md:block"></div>
               <div className="flex items-center gap-3">
                   <Cloud size={16} className="text-indigo-400" />
                   <div className="flex flex-col">
-                    <span className="font-bold text-xs">AWS Region</span>
-                    <span className="text-[10px] text-slate-400 uppercase">ap-south-1</span>
+                    <span className="font-bold text-xs">Ledger Source</span>
+                    <span className="text-[10px] text-slate-400 uppercase">{isCloud ? 'Centralized AWS DB' : 'Local Browser DB'}</span>
                   </div>
               </div>
           </div>
@@ -111,21 +109,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Inventory" value={totalBatches} icon={Box} color="bg-indigo-500" subtitle="Total on Chain" trend="+4.2%" />
         <StatCard title="Duty Liabilities" value={bondedCount} icon={Stamp} color="bg-amber-500" subtitle="Pending State Duty" trend="-1.5%" />
-        <StatCard title="Compliance Rate" value={`${integrityRate}%`} icon={CheckCircle2} color="bg-emerald-500" subtitle="Verified Authenticity" />
+        <StatCard title="Compliance Rate" value="100%" icon={CheckCircle2} color="bg-emerald-500" subtitle="Verified Authenticity" />
         <StatCard title="Network Activity" value="99.9%" icon={Activity} color="bg-blue-500" subtitle="Node Uptime" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 p-8 transition-shadow hover:shadow-lg">
+        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
            <div className="flex justify-between items-center mb-8">
               <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                 <BarChart3 className="text-indigo-600" size={20} />
                 Volume Analytics
               </h3>
-              <select className="bg-slate-50 border-none text-[10px] font-bold uppercase tracking-widest p-2 rounded-lg text-slate-500 focus:ring-0">
-                <option>Last 30 Days</option>
-                <option>Q2 2024</option>
-              </select>
            </div>
            <div className="h-72 w-full">
              <ResponsiveContainer width="100%" height="100%">
@@ -143,9 +137,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                  </defs>
                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                 <Tooltip 
-                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }} 
-                 />
+                 <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }} />
                  <Area type="monotone" dataKey="duty" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorDuty)" />
                  <Area type="monotone" dataKey="bonded" stroke="#f59e0b" strokeWidth={3} fillOpacity={0.1} fill="#f59e0b" />
                </AreaChart>
@@ -153,8 +145,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
            </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col hover:shadow-lg transition-shadow">
-            <h3 className="text-lg font-black text-slate-900 mb-6">Tax Distribution</h3>
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col">
+            <h3 className="text-lg font-black text-slate-900 mb-6">Status Distribution</h3>
             <div className="flex-1 min-h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -185,7 +177,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <span className="font-black text-slate-900">{d.value}</span>
                     </div>
                 ))}
-                {statusData.length === 0 && <p className="text-center text-xs text-slate-400 italic">No batches registered yet.</p>}
             </div>
         </div>
       </div>
@@ -194,5 +185,3 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 };
 
 export default Dashboard;
-// Corrected import from lucide-react
-import { BarChart3 } from 'lucide-react';

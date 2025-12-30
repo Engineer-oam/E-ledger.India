@@ -3,12 +3,8 @@ import { LedgerService } from "./ledgerService";
 
 export const GeminiService = {
   analyzeLedger: async (userQuery: string): Promise<string> => {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return "AI services are currently unavailable. No API_KEY configured.";
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
+    // Fix: SDK must be initialized exactly as 'new GoogleGenAI({ apiKey: process.env.API_KEY })' per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
     
     // Fetch real-time ledger data for context
     let batches = [];
