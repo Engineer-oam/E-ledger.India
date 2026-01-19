@@ -47,6 +47,39 @@ const BlockchainEngine = {
       if (currentBlock.previousHash !== previousBlock.hash) return false;
     }
     return true;
+  },
+
+  validateTransaction: (transaction, db) => {
+    return new Promise((resolve, reject) => {
+      // 1. Verify signature
+      const isValidSignature = require('./crypto').verify(transaction.payload, transaction.signature, transaction.actor);
+      if (!isValidSignature) {
+        return resolve({ valid: false, error: 'Invalid signature' });
+      }
+      
+      // 2. Verify transaction structure
+      if (!transaction.txId || !transaction.payload || !transaction.actor || !transaction.timestamp) {
+        return resolve({ valid: false, error: 'Missing required transaction fields' });
+      }
+      
+      // 3. Check if transaction ID is unique
+      db.get('SELECT txId FROM pending_transactions WHERE txId = ?', [transaction.txId], (err, row) => {
+        if (err) return reject(err);
+        if (row) {
+          return resolve({ valid: false, error: 'Duplicate transaction ID' });
+        }
+        
+        // 4. Verify that actor exists in users table
+        db.get('SELECT gln FROM users WHERE gln = ?', [transaction.actor], (err, userRow) => {
+          if (err) return reject(err);
+          if (!userRow) {
+            return resolve({ valid: false, error: 'Unknown actor GLN' });
+          }
+          
+          resolve({ valid: true });
+        });
+      });
+    });
   }
 };
 

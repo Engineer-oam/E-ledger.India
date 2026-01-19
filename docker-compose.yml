@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_BLOCKCHAIN_NODE=http://blockchain-node:8080
+    depends_on:
+      - backend
+      - blockchain-node-go
+    networks:
+      - eledger-network
+
+  # Backend API service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/eledger
+      - JWT_SECRET=your-jwt-secret-key-change-in-production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - BLOCKCHAIN_NODE_URL=http://blockchain-node-go:8080
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - eledger-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=eledger
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/config/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - eledger-network
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - eledger-network
+
+  # Go blockchain node
+  blockchain-node-go:
+    build:
+      context: ./blockchain-engine/go-core
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - STORAGE_PATH=/data
+    volumes:
+      - blockchain_go_data:/data
+    networks:
+      - eledger-network
+
+  # Rust blockchain node
+  blockchain-node-rust:
+    build:
+      context: ./blockchain-engine/rust-core
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=production
+      - STORAGE_PATH=/data
+    volumes:
+      - blockchain_rust_data:/data
+    networks:
+      - eledger-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - eledger-network
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - eledger-network
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - eledger-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  blockchain_go_data:
+  blockchain_rust_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  eledger-network:
+    driver: bridge

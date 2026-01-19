@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Frontend development service
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_BLOCKCHAIN_NODE=http://blockchain-node-go:8080
+    volumes:
+      - .:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+    networks:
+      - eledger-dev-network
+
+  # Backend development service
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres-dev:5432/eledger_dev
+      - JWT_SECRET=dev-secret-key
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - BLOCKCHAIN_NODE_URL=http://blockchain-node-go:8080
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - postgres-dev
+    networks:
+      - eledger-dev-network
+
+  # Development PostgreSQL
+  postgres-dev:
+    image: postgres:15-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=eledger_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./backend/src/config/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - eledger-dev-network
+
+  # Development Redis
+  redis-dev:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - eledger-dev-network
+
+  # Go blockchain node for development
+  blockchain-node-go-dev:
+    build:
+      context: ./blockchain-engine/go-core
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - STORAGE_PATH=/data
+    volumes:
+      - blockchain_go_dev_data:/data
+    networks:
+      - eledger-dev-network
+
+networks:
+  eledger-dev-network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  blockchain_go_dev_data:

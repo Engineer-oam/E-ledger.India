@@ -50,16 +50,9 @@ export const LedgerEngine = {
       // Verify block link
       if (current.previousHash !== previous.hash) return { valid: false, errorIndex: i };
 
-      // Verify block hash
-      const blockData = { 
-        index: current.index, 
-        timestamp: current.timestamp, 
-        merkleRoot: current.merkleRoot, 
-        previousHash: current.previousHash, 
-        nonce: current.nonce 
-      };
-      const recalculatedHash = await CryptoUtils.hash(blockData);
-      if (recalculatedHash !== current.hash) return { valid: false, errorIndex: i };
+      // Verify block integrity using dedicated function
+      const isBlockValid = await CryptoUtils.validateBlockIntegrity(current);
+      if (!isBlockValid) return { valid: false, errorIndex: i };
     }
 
     return { valid: true };

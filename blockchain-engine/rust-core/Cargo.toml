@@ -1,0 +1,26 @@
+[package]
+name = "e-ledger-rust-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["E-Ledger Team"]
+description = "Rust implementation of the E-Ledger blockchain core"
+license = "Apache-2.0"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+ring = "0.17"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+[[bin]]
+name = "e-ledger-rust-core"
+path = "src/main.rs"
+
+[lib]
+name = "e_ledger_rust_core"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tokio-test = "0.4"

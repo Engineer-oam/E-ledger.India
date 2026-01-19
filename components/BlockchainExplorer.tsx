@@ -147,12 +147,30 @@ const BlockchainExplorer: React.FC = () => {
                       {selectedBlock.transactions.map((tx: any, idx: number) => (
                          <div key={idx} className="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
                             <div className="flex justify-between text-xs mb-1">
-                               <span className="font-bold text-indigo-400">{tx.payload?.action || 'GENESIS'}</span>
+                               <span className="font-bold text-indigo-400">{tx.payload?.action || tx.payload?.type || 'GENESIS'}</span>
                                <span className="text-slate-500 font-mono">ID: {tx.txId?.slice(0, 8)}</span>
                             </div>
-                            <p className="text-[11px] text-slate-300">Actor: {tx.actorGLN}</p>
-                            <div className="mt-2 text-[9px] bg-slate-950 p-2 rounded text-emerald-400 font-mono break-all border border-slate-700 shadow-inner">
-                               SIG: {tx.signature?.slice(0, 48)}...
+                            <div className="grid grid-cols-2 gap-2 mt-2 text-[10px]">
+                               <div>
+                                  <p className="text-slate-400">Actor:</p>
+                                  <p className="text-slate-300 truncate">{tx.actorGLN}</p>
+                               </div>
+                               <div>
+                                  <p className="text-slate-400">Timestamp:</p>
+                                  <p className="text-slate-300">{new Date(tx.timestamp).toLocaleString()}</p>
+                               </div>
+                            </div>
+                            <div className="mt-2">
+                               <p className="text-slate-400 text-[10px] mb-1">Payload:</p>
+                               <pre className="text-[8px] bg-slate-900 p-2 rounded text-emerald-400 font-mono overflow-auto max-h-24 border border-slate-700">
+                                  {JSON.stringify(tx.payload, null, 2)}
+                               </pre>
+                            </div>
+                            <div className="mt-2">
+                               <p className="text-slate-400 text-[10px] mb-1">Signature:</p>
+                               <div className="text-[9px] bg-slate-950 p-2 rounded text-emerald-400 font-mono break-all border border-slate-700 shadow-inner">
+                                  {tx.signature}
+                               </div>
                             </div>
                          </div>
                       ))}

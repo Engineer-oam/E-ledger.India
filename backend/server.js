@@ -85,6 +85,15 @@ db.serialize(() => {
     merkleRoot TEXT
   )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS pending_transactions (
+    txId TEXT PRIMARY KEY,
+    payload TEXT,
+    actorGLN TEXT,
+    timestamp TEXT,
+    signature TEXT,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Seed Genesis Block if empty
   db.get('SELECT COUNT(*) as count FROM blockchain_blocks', (err, row) => {
     if (row && row.count === 0) {
@@ -94,6 +103,12 @@ db.serialize(() => {
       [genesis.index, genesis.timestamp, JSON.stringify(genesis.transactions), genesis.previousHash, genesis.hash, genesis.merkleRoot]);
     }
   });
+  
+  // Create indexes for better performance
+  db.run('CREATE INDEX IF NOT EXISTS idx_blockchain_blocks_index ON blockchain_blocks(index_no)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_blockchain_blocks_hash ON blockchain_blocks(hash)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_pending_transactions_actor ON pending_transactions(actorGLN)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_pending_transactions_timestamp ON pending_transactions(timestamp)');
 });
 
 // Initialize Blockchain Routes & Hooks

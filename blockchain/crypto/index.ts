@@ -1,4 +1,3 @@
-
 export const CryptoUtils = {
   /**
    * Generates a SHA-256 hash of the input string or object.
@@ -27,5 +26,21 @@ export const CryptoUtils = {
   verify: async (data: any, signature: string, actorGLN: string): Promise<boolean> => {
     const expected = await CryptoUtils.sign(data, actorGLN);
     return expected === signature;
+  },
+
+  /**
+   * Validates the integrity of a block by recalculating its hash
+   */
+  validateBlockIntegrity: async (block: any): Promise<boolean> => {
+    // Recalculate the block hash to verify integrity
+    const blockData = { 
+      index: block.index, 
+      timestamp: block.timestamp, 
+      merkleRoot: block.merkleRoot, 
+      previousHash: block.previousHash, 
+      nonce: block.nonce 
+    };
+    const recalculatedHash = await CryptoUtils.hash(blockData);
+    return recalculatedHash === block.hash;
   }
 };
