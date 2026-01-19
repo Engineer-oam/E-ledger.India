@@ -3,15 +3,26 @@ use serde_json::json;
 use std::env;
 
 fn main() {
-    println!("Starting E-Ledger Rust Blockchain Core...");
+    println!("Starting E-Ledger Rust Blockchain Core with PoA Consensus...");
 
     // Initialize the distributed ledger
     let mut ledger = DistributedLedger::new();
     
-    // Add some sample validators
-    ledger.add_validator("1234567890123".to_string());
-    ledger.add_validator("2345678901234".to_string());
-    ledger.add_validator("3456789012345".to_string());
+    // Add some sample validators for PoA
+    match ledger.add_poa_validator("1234567890123".to_string(), "pub_key_1".to_string(), "VALIDATOR".to_string()) {
+        Ok(_) => println!("Added validator 1234567890123"),
+        Err(e) => println!("Error adding validator: {}", e),
+    }
+    
+    match ledger.add_poa_validator("2345678901234".to_string(), "pub_key_2".to_string(), "VALIDATOR".to_string()) {
+        Ok(_) => println!("Added validator 2345678901234"),
+        Err(e) => println!("Error adding validator: {}", e),
+    }
+    
+    match ledger.add_poa_validator("3456789012345".to_string(), "pub_key_3".to_string(), "VALIDATOR".to_string()) {
+        Ok(_) => println!("Added validator 3456789012345"),
+        Err(e) => println!("Error adding validator: {}", e),
+    }
     
     // Add some sample peers
     ledger.add_peer("http://node1.eledger.network:8080".to_string());
@@ -40,8 +51,8 @@ fn main() {
         Err(e) => println!("Error adding transaction: {}", e),
     }
     
-    // Mine a block with the pending transactions
-    match ledger.blockchain.mine_pending_transactions("validator_node_1".to_string()) {
+    // Mine a block with the pending transactions using PoA
+    match ledger.mine_with_poa("1234567890123".to_string()) {
         Ok(_) => {
             let latest_block = ledger.blockchain.get_latest_block().unwrap();
             println!("Block mined successfully! Index: {}, Hash: {}", latest_block.index, latest_block.hash);
@@ -59,6 +70,7 @@ fn main() {
     // Print blockchain stats
     println!("Blockchain length: {}", ledger.blockchain.chain.len());
     println!("Pending transactions: {}", ledger.blockchain.pending_transactions.len());
+    println!("Number of validators: {}", ledger.blockchain.validators.len());
     
     // Get balance for an address
     let balance = ledger.blockchain.get_balance_of_address("1234567890123");
@@ -82,13 +94,13 @@ fn main() {
                     ledger.blockchain.chain.iter()
                         .map(|block| block.transactions.len())
                         .sum::<usize>());
-                println!("  Validators: {}", ledger.consensus_state.validators.len());
+                println!("  Validators: {}", ledger.blockchain.validators.len());
                 println!("  Peers: {}", ledger.peers.len());
             }
             "mine" => {
                 if args.len() >= 3 {
                     let miner_addr = &args[2];
-                    match ledger.blockchain.mine_pending_transactions(miner_addr.to_string()) {
+                    match ledger.mine_with_poa(miner_addr.to_string()) {
                         Ok(_) => {
                             let latest_block = ledger.blockchain.get_latest_block().unwrap();
                             println!("New block mined! Index: {}, Hash: {}", latest_block.index, latest_block.hash);

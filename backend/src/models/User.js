@@ -21,6 +21,10 @@ class User {
     this.isVerified = userData.isVerified !== undefined ? userData.isVerified : false;
     this.createdAt = userData.createdAt;
     this.updatedAt = userData.updatedAt;
+    this.lastLoginAt = userData.lastLoginAt;
+    this.failedLoginAttempts = userData.failedLoginAttempts || 0;
+    this.lockedUntil = userData.lockedUntil;
+    this.permissions = userData.permissions || []; // Additional permissions beyond role
   }
 
   static async create(userData) {
@@ -30,8 +34,8 @@ class User {
     const passwordHash = await bcrypt.hash(userData.password, salt);
 
     const sql = `
-      INSERT INTO users (id, name, email, gln, role, org_name, country, sector, position_label, erp_type, erp_status, password_hash, salt, is_active, is_verified)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      INSERT INTO users (id, name, email, gln, role, org_name, country, sector, position_label, erp_type, erp_status, password_hash, salt, is_active, is_verified, last_login_at, failed_login_attempts, locked_until)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `;
 
@@ -50,7 +54,10 @@ class User {
       passwordHash,
       salt,
       userData.isActive,
-      userData.isVerified
+      userData.isVerified,
+      userData.lastLoginAt,
+      userData.failedLoginAttempts || 0,
+      userData.lockedUntil
     ];
 
     const result = await query(sql, values);
@@ -96,6 +103,11 @@ class User {
         paramCount++;
         filters.push(`country = $${paramCount}`);
         values.push(options.filters.country);
+      }
+      if (options.filters.gln) {
+        paramCount++;
+        filters.push(`gln = $${paramCount}`);
+        values.push(options.filters.gln);
       }
       if (filters.length > 0) {
         sql += ' WHERE ' + filters.join(' AND ');
@@ -143,8 +155,112 @@ class User {
     return result.rows[0] ? true : false;
   }
 
+  // Enhanced authentication methods
+  static async authenticate(email, password) {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      // Still hash the password to prevent timing attacks
+      await bcrypt.hash(password, 10);
+      return null;
+    }
+
+    // Check if account is locked
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      throw new Error('Account is temporarily locked due to multiple failed login attempts');
+    }
+
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      // Increment failed attempts
+      const newFailedAttempts = user.failedLoginAttempts + 1;
+      let lockedUntil = user.lockedUntil;
+      
+      // Lock account after 5 failed attempts for 30 minutes
+      if (newFailedAttempts >= 5) {
+        lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+      }
+      
+      await this.update(user.id, {
+        failedLoginAttempts: newFailedAttempts,
+        lockedUntil
+      });
+      
+      return null;
+    }
+
+    // Reset failed attempts and update last login
+    await this.update(user.id, {
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      lastLoginAt: new Date()
+    });
+
+    return user;
+  }
+
   async comparePassword(password) {
     return bcrypt.compare(password, this.passwordHash);
+  }
+
+  // Method to check if user has specific permission
+  hasPermission(permission) {
+    // Check role-based permissions
+    const rolePermissions = this.getRolePermissions(this.role);
+    if (rolePermissions.includes(permission)) {
+      return true;
+    }
+    
+    // Check additional permissions
+    return this.permissions.includes(permission);
+  }
+
+  // Get all permissions for the user
+  getAllPermissions() {
+    const rolePermissions = this.getRolePermissions(this.role);
+    return [...new Set([...rolePermissions, ...this.permissions])]; // Combine and deduplicate
+  }
+
+  // Get permissions based on role
+  getRolePermissions(role) {
+    const rolePermissionsMap = {
+      'ADMIN': [
+        'users:read', 'users:write', 'users:delete',
+        'blocks:read', 'blocks:write',
+        'transactions:read', 'transactions:write',
+        'erp:read', 'erp:write',
+        'compliance:read', 'compliance:write',
+        'settings:read', 'settings:write'
+      ],
+      'MANAGER': [
+        'users:read', 'users:write',
+        'blocks:read',
+        'transactions:read', 'transactions:write',
+        'erp:read', 'erp:write',
+        'compliance:read'
+      ],
+      'EMPLOYEE': [
+        'transactions:read', 'transactions:write',
+        'erp:read',
+        'compliance:read'
+      ],
+      'SUPPLIER': [
+        'transactions:read', 'transactions:write',
+        'erp:read',
+        'blocks:read'
+      ],
+      'DISTRIBUTOR': [
+        'transactions:read', 'transactions:write',
+        'erp:read',
+        'blocks:read'
+      ],
+      'RETAILER': [
+        'transactions:read', 'transactions:write',
+        'erp:read',
+        'blocks:read'
+      ]
+    };
+
+    return rolePermissionsMap[role] || [];
   }
 
   toJSON() {
@@ -163,7 +279,10 @@ class User {
       isActive: this.isActive,
       isVerified: this.isVerified,
       createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+      updatedAt: this.updatedAt,
+      lastLoginAt: this.lastLoginAt,
+      failedLoginAttempts: this.failedLoginAttempts,
+      lockedUntil: this.lockedUntil
     };
   }
 }

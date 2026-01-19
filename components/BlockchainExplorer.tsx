@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Database, Link as LinkIcon, Clock, CheckCircle2, Shield, Search, Box, ChevronRight, Activity, Globe, Terminal } from 'lucide-react';
+import { Database, Link as LinkIcon, Clock, CheckCircle2, Shield, Search, Box, ChevronRight, Activity, Globe, Terminal, Copy, ExternalLink } from 'lucide-react';
 import { BlockchainAPI } from '../blockchain/api';
 
 const BlockchainExplorer: React.FC = () => {
@@ -8,16 +8,19 @@ const BlockchainExplorer: React.FC = () => {
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedBlock, setSelectedBlock] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
-      const blocksData = BlockchainAPI.getBlocks();
+      setError(null);
+      const blocksData = await BlockchainAPI.getBlocks(); // Fixed: now async
       const statusData = await BlockchainAPI.getStatus();
       
       setBlocks(blocksData);
       setStatus(statusData);
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching blockchain data:', e);
+      setError('Failed to connect to blockchain network. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -28,6 +31,23 @@ const BlockchainExplorer: React.FC = () => {
     const interval = setInterval(fetchData, 5000); // Fast polling for local mode
     return () => clearInterval(interval);
   }, []);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  if (error) return (
+    <div className="p-12 text-center flex flex-col items-center gap-4">
+      <Activity className="text-red-500" size={48} />
+      <p className="text-red-500 font-bold">{error}</p>
+      <button 
+        onClick={fetchData}
+        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+      >
+        Retry Connection
+      </button>
+    </div>
+  );
 
   if (loading) return (
     <div className="p-12 text-center flex flex-col items-center gap-4">

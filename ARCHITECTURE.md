@@ -53,11 +53,20 @@ E-Ledger is a blockchain-based cross-enterprise supply chain management solution
 - **Security**: OAuth 2.0, JWT tokens, and API key validation
 
 ### 2. Authentication & Authorization
-- **Identity Provider**: Keycloak/AWS Cognito
+
+#### 2.1 Role-Based Access Control (RBAC)
+- **Roles**: ADMIN, MANAGER, EMPLOYEE, SUPPLIER, DISTRIBUTOR, RETAILER
+- **Permissions**: Fine-grained permissions mapped to roles
 - **Multi-Factor Authentication**: SMS, TOTP, and hardware keys
-- **Role-Based Access Control**: Granular permissions based on enterprise role
 - **Enterprise SSO**: SAML 2.0 and OpenID Connect integration
 - **Certificate Management**: PKI for GLN-based digital signatures
+- **Account Security**: Account locking after failed login attempts, secure password hashing with Argon2
+
+#### 2.2 Enhanced Security Features
+- **JWT Token Management**: Secure token generation, validation, and expiration
+- **Permission Verification**: Middleware to check user permissions at request level
+- **Resource Ownership**: Ensuring users can only access their own resources
+- **Session Management**: Secure session handling and timeout mechanisms
 
 ### 3. Core Services Layer
 
@@ -67,6 +76,8 @@ E-Ledger is a blockchain-based cross-enterprise supply chain management solution
 - **Node Management**: Enterprise-specific node deployment and maintenance
 - **Cryptographic Engine**: Hardware Security Module (HSM) integration
 - **Interoperability**: Cross-chain bridges for external integrations
+- **Validator Management**: Dynamic addition/removal of authorized validators
+- **Transaction Verification**: Multi-layered transaction validation
 
 #### 3.2 Supply Chain Service
 - **Batch Management**: Creation, tracking, and lifecycle management
@@ -90,17 +101,19 @@ E-Ledger is a blockchain-based cross-enterprise supply chain management solution
 ### 4. Integration Services Layer
 
 #### 4.1 ERP Integration
-- **SAP Connector**: RFC and IDoc-based integration
-- **Oracle NetSuite**: REST API integration
-- **Microsoft Dynamics**: OData and SOAP connectors
-- **Custom ERP**: Adaptable connector framework
-- **Legacy Systems**: EDI and flat-file integration
+- **SAP Connector**: RFC and IDoc-based integration with role-based access
+- **Oracle NetSuite**: REST API integration with permission mapping
+- **Microsoft Dynamics**: OData and SOAP connectors with access controls
+- **Custom ERP**: Adaptable connector framework with configurable RBAC
+- **Legacy Systems**: EDI and flat-file integration with security layer
+- **ERP Sync Service**: Real-time synchronization with blockchain ledger
 
 #### 4.2 Third-Party Services
-- **Logistics Providers**: FedEx, UPS, DHL integration
-- **Payment Gateways**: Stripe, PayPal, and bank integrations
-- **Tax Services**: Avalara and regional tax calculation
-- **Document Management**: Electronic invoicing and e-Waybill
+- **Logistics Providers**: FedEx, UPS, DHL integration with secure API access
+- **Payment Gateways**: Stripe, PayPal, and bank integrations with PCI compliance
+- **Tax Services**: Avalara and regional tax calculation with audit trails
+- **Document Management**: Electronic invoicing and e-Waybill with access controls
+- **Analytics Platforms**: Tableau/PowerBI integration with role-based dashboards
 
 ### 5. Data Layer
 - **Primary Database**: PostgreSQL with read replicas for ACID compliance
@@ -119,11 +132,11 @@ E-Ledger is a blockchain-based cross-enterprise supply chain management solution
 
 ### 7. Blockchain Network Infrastructure
 - **Node Types**:
-  - Validator Nodes: Core consensus participants
+  - Validator Nodes: Core consensus participants with PoA authorization
   - Full Nodes: Complete chain history
   - Light Nodes: Reduced storage requirements
 - **Network Topology**: Hybrid public-private model
-- **Consensus Algorithm**: Practical Byzantine Fault Tolerance (pBFT)
+- **Consensus Algorithm**: Proof of Authority (PoA) for enterprise environments
 - **Privacy Layer**: Zero-knowledge proofs for confidential transactions
 - **Cross-Chain Bridge**: Interoperability with other networks
 
@@ -201,7 +214,7 @@ E-Ledger is a blockchain-based cross-enterprise supply chain management solution
 - **Languages**: Go (core services), Rust (blockchain engine), Node.js (gateway/API layer)
 - **Framework**: Express.js, NestJS, Spring Boot
 - **Database**: PostgreSQL, Redis, Elasticsearch
-- **Blockchain**: Hyperledger Besu or custom PoA implementation
+- **Blockchain**: Custom PoA implementation in Go and Rust
 
 ### 11.2 DevOps Tools
 - **Containerization**: Docker
@@ -218,26 +231,27 @@ E-Ledger is a blockchain-based cross-enterprise supply chain management solution
 ## Implementation Phases
 
 ### Phase 1: Foundation (Months 1-3)
-- Core blockchain infrastructure
-- Basic user authentication
-- Essential API endpoints
-- Minimal viable compliance features
+- Core blockchain infrastructure with PoA consensus
+- Enhanced authentication with RBAC implementation
+- Essential API endpoints with security middleware
+- ERP integration capabilities with multiple adapters
+- Third-party service integration framework
 
 ### Phase 2: Integration (Months 4-6)
-- ERP integration capabilities
-- Advanced compliance features
-- Enhanced security controls
-- Performance optimizations
+- Advanced ERP integration capabilities
+- Enhanced compliance features with regulatory reporting
+- Advanced security controls with MFA and account management
+- Performance optimizations with caching and indexing
 
 ### Phase 3: Scale & Optimize (Months 7-9)
-- Enterprise scalability features
-- Advanced analytics
-- Predictive capabilities
-- Multi-cloud deployment
+- Enterprise scalability features with microservices
+- Advanced analytics and dashboard capabilities
+- Predictive capabilities with ML integration
+- Multi-cloud deployment strategies
 
 ### Phase 4: Advanced Features (Months 10-12)
-- AI/ML integration
-- Advanced privacy features
+- AI/ML integration for supply chain optimization
+- Advanced privacy features with zero-knowledge proofs
 - Cross-chain interoperability
 - Complete compliance automation
 

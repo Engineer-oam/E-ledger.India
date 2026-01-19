@@ -1,11 +1,15 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
+	"math/big"
 )
 
 // Transaction represents a single transaction in the blockchain
@@ -56,10 +60,12 @@ type Block struct {
 	Nonce        uint64        `json:"nonce"`
 	MerkleRoot   string        `json:"merkleRoot"`
 	Difficulty   uint32        `json:"difficulty"`
+	Validator    string        `json:"validator"` // GLN of the validator who created this block
+	Signature    string        `json:"signature"` // Digital signature of the validator
 }
 
 // NewBlock creates a new block
-func NewBlock(index uint64, transactions []Transaction, previousHash string) *Block {
+func NewBlock(index uint64, transactions []Transaction, previousHash string, validatorGLN string) *Block {
 	timestamp := time.Now().Format(time.RFC3339)
 	merkleRoot := calculateMerkleRoot(transactions)
 
@@ -71,39 +77,39 @@ func NewBlock(index uint64, transactions []Transaction, previousHash string) *Bl
 		Hash:         "",
 		Nonce:        0,
 		MerkleRoot:   merkleRoot,
-		Difficulty:   4, // Fixed difficulty for MVP
+		Difficulty:   0, // Difficulty set to 0 for PoA (no mining needed)
+		Validator:    validatorGLN,
+		Signature:    "", // Will be set after hash is calculated
 	}
 
 	// Calculate initial hash
 	block.Hash = block.CalculateHash()
+	// Sign the block with validator's private key (simulated)
+	block.Signature = calculateHash(fmt.Sprintf("%s%s", block.Hash, validatorGLN))
 
 	return block
 }
 
 // CalculateHash calculates the hash of the block
 func (b *Block) CalculateHash() string {
-	data := fmt.Sprintf("%d%s%s%s%d%v",
+	data := fmt.Sprintf("%d%s%s%s%d%v%s",
 		b.Index,
 		b.Timestamp,
 		b.MerkleRoot,
 		b.PreviousHash,
 		b.Nonce,
-		b.Transactions)
+		b.Transactions,
+		b.Validator)
 	return calculateHash(data)
 }
 
-// MineBlock performs proof-of-work mining
+// MineBlock performs proof-of-work mining (not used in PoA, kept for compatibility)
 func (b *Block) MineBlock() {
-	for {
-		b.Hash = b.CalculateHash()
-
-		// Check if hash meets difficulty requirement
-		if b.Hash[:b.Difficulty] == "0000"[:b.Difficulty] {
-			break
-		}
-
-		b.Nonce++
-	}
+	// In PoA, no mining is needed, so this is a no-op
+	// The validator signs the block instead of mining it
+	b.Nonce = 0
+	b.Hash = b.CalculateHash()
+	b.Signature = calculateHash(fmt.Sprintf("%s%s", b.Hash, b.Validator))
 }
 
 // calculateMerkleRoot calculates the Merkle root of the transactions
@@ -140,11 +146,24 @@ func calculateMerkleRoot(transactions []Transaction) string {
 	return hashes[0]
 }
 
+// Validator represents an authorized validator in the PoA network
+type Validator struct {
+	GLN         string
+	PublicKey   string
+	PrivateKey  *ecdsa.PrivateKey
+	Active      bool
+	Role        string
+}
+
 // Blockchain manages the entire chain
 type Blockchain struct {
 	Chain               []*Block      `json:"chain"`
 	PendingTransactions []Transaction `json:"pendingTransactions"`
 	Difficulty          uint32        `json:"difficulty"`
+	Validators          map[string]*Validator `json:"validators"` // Map of authorized validators (GLN -> Validator)
+	Threshold           int           `json:"threshold"`    // Minimum number of validators needed for consensus
+	CurrentRound        int           `json:"currentRound"` // Current consensus round
+	NextValidator       string        `json:"nextValidator"` // Next validator in the rotation
 }
 
 // NewBlockchain creates a new blockchain with genesis block
@@ -152,7 +171,11 @@ func NewBlockchain() *Blockchain {
 	blockchain := &Blockchain{
 		Chain:               make([]*Block, 0),
 		PendingTransactions: make([]Transaction, 0),
-		Difficulty:          4,
+		Difficulty:          0, // Set to 0 for PoA (no mining needed)
+		Validators:          make(map[string]*Validator),
+		Threshold:           1, // In PoA, typically 1 validator is enough
+		CurrentRound:        0,
+		NextValidator:       "",
 	}
 
 	// Add genesis block
@@ -172,7 +195,7 @@ func (bc *Blockchain) createGenesisBlock() *Block {
 	transaction := *NewTransaction(payload, "0000000000000")
 	transactions := []Transaction{transaction}
 
-	block := NewBlock(0, transactions, "0000000000000000000000000000000000000000000000000000000000000000")
+	block := NewBlock(0, transactions, "0000000000000000000000000000000000000000000000000000000000000000", "SYSTEM_VALIDATOR")
 	block.MineBlock() // Mine the genesis block
 
 	return block
@@ -188,11 +211,90 @@ func (bc *Blockchain) GetLatestBlock() *Block {
 
 // AddTransaction adds a transaction to pending transactions
 func (bc *Blockchain) AddTransaction(transaction Transaction) {
-	bc.PendingTransactions = append(bc.PendingTransactions, transaction)
+	// Verify the transaction signature before adding
+	if bc.VerifyTransactionSignature(&transaction) {
+		bc.PendingTransactions = append(bc.PendingTransactions, transaction)
+	}
+}
+
+// AddValidator adds a new validator to the network
+func (bc *Blockchain) AddValidator(gln string, publicKey string, role string) error {
+	// Check if validator already exists
+	if _, exists := bc.Validators[gln]; exists {
+		return fmt.Errorf("validator with GLN %s already exists", gln)
+	}
+	
+	// Create private key for the validator (in real implementation, this would be securely generated and stored)
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return fmt.Errorf("failed to generate private key for validator: %v", err)
+	}
+	
+	bc.Validators[gln] = &Validator{
+		GLN:        gln,
+		PublicKey:  publicKey,
+		PrivateKey: privateKey,
+		Active:     true,
+		Role:       role,
+	}
+	
+	// Update threshold based on number of validators
+	bc.Threshold = len(bc.Validators)/2 + 1
+	
+	return nil
+}
+
+// GetNextValidator determines the next validator in the rotation
+func (bc *Blockchain) GetNextValidator() *Validator {
+	activeValidators := make([]*Validator, 0)
+	for _, validator := range bc.Validators {
+		if validator.Active {
+			activeValidators = append(activeValidators, validator)
+		}
+	}
+	
+	if len(activeValidators) == 0 {
+		return nil
+	}
+	
+	// Simple round-robin selection
+	index := bc.CurrentRound % len(activeValidators)
+	bc.CurrentRound++
+	
+	return activeValidators[index]
+}
+
+// VerifyTransactionSignature verifies the signature of a transaction
+func (bc *Blockchain) VerifyTransactionSignature(tx *Transaction) bool {
+	// For MVP, we'll use a simple hash-based verification
+	// In a real implementation, this would use proper cryptographic signature verification
+	calculatedHash := calculateHash(fmt.Sprintf("%v%s%s", tx.Payload, tx.ActorGLN, tx.Timestamp))
+	expectedSig := calculateHash(fmt.Sprintf("%s%s%s", calculatedHash, tx.ActorGLN, tx.Timestamp))
+	
+	return tx.Signature == expectedSig
+}
+
+// VerifyBlockSignature verifies the signature of a block
+func (bc *Blockchain) VerifyBlockSignature(block *Block) bool {
+	validator, exists := bc.Validators[block.Validator]
+	if !exists {
+		return false
+	}
+	
+	// Recreate the expected signature
+	expectedSig := calculateHash(fmt.Sprintf("%s%s", block.Hash, block.Validator))
+	
+	return block.Signature == expectedSig
 }
 
 // MinePendingTransactions mines pending transactions into a new block
 func (bc *Blockchain) MinePendingTransactions(minerAddress string) error {
+	// Check if the miner is a valid validator
+	validator, exists := bc.Validators[minerAddress]
+	if !exists || !validator.Active {
+		return fmt.Errorf("miner %s is not an authorized validator", minerAddress)
+	}
+	
 	if len(bc.PendingTransactions) == 0 {
 		return fmt.Errorf("no transactions to mine")
 	}
@@ -206,6 +308,7 @@ func (bc *Blockchain) MinePendingTransactions(minerAddress string) error {
 		latestBlock.Index+1,
 		bc.PendingTransactions,
 		latestBlock.Hash,
+		minerAddress, // Use minerAddress as validator
 	)
 
 	newBlock.MineBlock()
@@ -241,6 +344,20 @@ func (bc *Blockchain) IsChainValid() bool {
 		if currentBlock.PreviousHash != previousBlock.Hash {
 			fmt.Printf("Invalid previous hash at index %d\n", i)
 			return false
+		}
+
+		// Validate the block signature (PoA validation)
+		if !bc.VerifyBlockSignature(currentBlock) {
+			fmt.Printf("Invalid block signature at index %d\n", i)
+			return false
+		}
+		
+		// Verify all transactions in the block
+		for _, tx := range currentBlock.Transactions {
+			if !bc.VerifyTransactionSignature(&tx) {
+				fmt.Printf("Invalid transaction signature in block at index %d\n", i)
+				return false
+			}
 		}
 	}
 

@@ -1,12 +1,15 @@
 pub mod blockchain;
+pub mod auth;
 
-pub use blockchain::{Blockchain, Block, Transaction};
+pub use blockchain::{Blockchain, Block, Transaction, Validator};
+pub use auth::{AuthService, User, Role, CreateUserRequest};
 
 // DistributedLedger extends blockchain with networking and consensus capabilities
 pub struct DistributedLedger {
     pub blockchain: Blockchain,
     pub peers: Vec<String>,
     pub consensus_state: ConsensusState,
+    pub auth_service: AuthService, // Add authentication service
 }
 
 #[derive(Debug, Clone)]
@@ -26,6 +29,7 @@ impl DistributedLedger {
                 current_round: 0,
                 threshold: 0,
             },
+            auth_service: AuthService::new(), // Initialize auth service
         }
     }
 
@@ -54,6 +58,15 @@ impl DistributedLedger {
         // In a real implementation, we would broadcast to peers here
         // For MVP, we just return success
         Ok(())
+    }
+
+    // Add PoA-specific methods
+    pub fn add_poa_validator(&mut self, gln: String, public_key: String, role: String) -> Result<(), String> {
+        self.blockchain.add_validator(gln, public_key, role)
+    }
+
+    pub fn mine_with_poa(&mut self, validator_address: String) -> Result<(), String> {
+        self.blockchain.mine_pending_transactions(validator_address)
     }
 }
 

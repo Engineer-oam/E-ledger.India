@@ -8,9 +8,10 @@ export const LedgerEngine = {
    * Initializes the ledger if empty by creating a genesis block.
    */
   initialize: async () => {
-    if (BlockchainStorage.getChain().length === 0) {
+    const chain = await BlockchainStorage.getChain();
+    if (chain.length === 0) {
       const genesis = await BlockFactory.createGenesisBlock();
-      BlockchainStorage.appendBlock(genesis);
+      await BlockchainStorage.appendBlock(genesis);
     }
   },
 
@@ -24,7 +25,11 @@ export const LedgerEngine = {
     const envelope = await createTxEnvelope(data, actorGLN);
     
     // 2. Prepare new block (Immediate minting for MVP)
-    const lastBlock = BlockchainStorage.getLastBlock()!;
+    const lastBlock = await BlockchainStorage.getLastBlock();
+    if (!lastBlock) {
+      throw new Error('Unable to retrieve last block from blockchain');
+    }
+    
     const newBlock = await BlockFactory.createBlock(
       lastBlock.index + 1,
       [envelope],
@@ -32,7 +37,7 @@ export const LedgerEngine = {
     );
 
     // 3. Store immutably
-    BlockchainStorage.appendBlock(newBlock);
+    await BlockchainStorage.appendBlock(newBlock);
     return newBlock.hash;
   },
 
@@ -40,7 +45,7 @@ export const LedgerEngine = {
    * Verifies the entire chain for cryptographic tampering.
    */
   verifyIntegrity: async (): Promise<{ valid: boolean; errorIndex?: number }> => {
-    const chain = BlockchainStorage.getChain();
+    const chain = await BlockchainStorage.getChain();
     const { CryptoUtils } = await import('../crypto');
 
     for (let i = 1; i < chain.length; i++) {
