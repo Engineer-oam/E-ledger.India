@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Database, Link as LinkIcon, Clock, CheckCircle2, Shield, Search, Box, ChevronRight, Activity, Globe, Terminal, Copy, ExternalLink } from 'lucide-react';
+import { Database, Link as LinkIcon, Clock, CheckCircle2, Shield, Search, Box, ChevronRight, Activity, Globe, Terminal } from 'lucide-react';
 import { BlockchainAPI } from '../blockchain/api';
 
 const BlockchainExplorer: React.FC = () => {
@@ -8,19 +8,16 @@ const BlockchainExplorer: React.FC = () => {
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedBlock, setSelectedBlock] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
-      setError(null);
-      const blocksData = await BlockchainAPI.getBlocks(); // Fixed: now async
+      const blocksData = BlockchainAPI.getBlocks();
       const statusData = await BlockchainAPI.getStatus();
       
       setBlocks(blocksData);
       setStatus(statusData);
     } catch (e) {
-      console.error('Error fetching blockchain data:', e);
-      setError('Failed to connect to blockchain network. Please check your connection.');
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -31,23 +28,6 @@ const BlockchainExplorer: React.FC = () => {
     const interval = setInterval(fetchData, 5000); // Fast polling for local mode
     return () => clearInterval(interval);
   }, []);
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  if (error) return (
-    <div className="p-12 text-center flex flex-col items-center gap-4">
-      <Activity className="text-red-500" size={48} />
-      <p className="text-red-500 font-bold">{error}</p>
-      <button 
-        onClick={fetchData}
-        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-      >
-        Retry Connection
-      </button>
-    </div>
-  );
 
   if (loading) return (
     <div className="p-12 text-center flex flex-col items-center gap-4">
@@ -167,30 +147,12 @@ const BlockchainExplorer: React.FC = () => {
                       {selectedBlock.transactions.map((tx: any, idx: number) => (
                          <div key={idx} className="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
                             <div className="flex justify-between text-xs mb-1">
-                               <span className="font-bold text-indigo-400">{tx.payload?.action || tx.payload?.type || 'GENESIS'}</span>
+                               <span className="font-bold text-indigo-400">{tx.payload?.action || 'GENESIS'}</span>
                                <span className="text-slate-500 font-mono">ID: {tx.txId?.slice(0, 8)}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 mt-2 text-[10px]">
-                               <div>
-                                  <p className="text-slate-400">Actor:</p>
-                                  <p className="text-slate-300 truncate">{tx.actorGLN}</p>
-                               </div>
-                               <div>
-                                  <p className="text-slate-400">Timestamp:</p>
-                                  <p className="text-slate-300">{new Date(tx.timestamp).toLocaleString()}</p>
-                               </div>
-                            </div>
-                            <div className="mt-2">
-                               <p className="text-slate-400 text-[10px] mb-1">Payload:</p>
-                               <pre className="text-[8px] bg-slate-900 p-2 rounded text-emerald-400 font-mono overflow-auto max-h-24 border border-slate-700">
-                                  {JSON.stringify(tx.payload, null, 2)}
-                               </pre>
-                            </div>
-                            <div className="mt-2">
-                               <p className="text-slate-400 text-[10px] mb-1">Signature:</p>
-                               <div className="text-[9px] bg-slate-950 p-2 rounded text-emerald-400 font-mono break-all border border-slate-700 shadow-inner">
-                                  {tx.signature}
-                               </div>
+                            <p className="text-[11px] text-slate-300">Actor: {tx.actorGLN}</p>
+                            <div className="mt-2 text-[9px] bg-slate-950 p-2 rounded text-emerald-400 font-mono break-all border border-slate-700 shadow-inner">
+                               SIG: {tx.signature?.slice(0, 48)}...
                             </div>
                          </div>
                       ))}

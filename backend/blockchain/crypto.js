@@ -26,11 +26,14 @@ const sign = (data, gln) => {
   return signature.toString('hex');
 };
 
-const verify = (data, signature, gln) => {
+const verify = (data, signature, publicKey) => {
   try {
-    // For our simplified implementation, we'll recreate the signature and compare
-    const expectedSignature = sign(data, gln);
-    return expectedSignature === signature;
+    return crypto.verify(
+      null,
+      Buffer.from(JSON.stringify(data)),
+      publicKey,
+      Buffer.from(signature, 'hex')
+    );
   } catch (e) {
     return false;
   }

@@ -8,10 +8,9 @@ export const LedgerEngine = {
    * Initializes the ledger if empty by creating a genesis block.
    */
   initialize: async () => {
-    const chain = await BlockchainStorage.getChain();
-    if (chain.length === 0) {
+    if (BlockchainStorage.getChain().length === 0) {
       const genesis = await BlockFactory.createGenesisBlock();
-      await BlockchainStorage.appendBlock(genesis);
+      BlockchainStorage.appendBlock(genesis);
     }
   },
 
@@ -25,11 +24,7 @@ export const LedgerEngine = {
     const envelope = await createTxEnvelope(data, actorGLN);
     
     // 2. Prepare new block (Immediate minting for MVP)
-    const lastBlock = await BlockchainStorage.getLastBlock();
-    if (!lastBlock) {
-      throw new Error('Unable to retrieve last block from blockchain');
-    }
-    
+    const lastBlock = BlockchainStorage.getLastBlock()!;
     const newBlock = await BlockFactory.createBlock(
       lastBlock.index + 1,
       [envelope],
@@ -37,7 +32,7 @@ export const LedgerEngine = {
     );
 
     // 3. Store immutably
-    await BlockchainStorage.appendBlock(newBlock);
+    BlockchainStorage.appendBlock(newBlock);
     return newBlock.hash;
   },
 
@@ -45,7 +40,7 @@ export const LedgerEngine = {
    * Verifies the entire chain for cryptographic tampering.
    */
   verifyIntegrity: async (): Promise<{ valid: boolean; errorIndex?: number }> => {
-    const chain = await BlockchainStorage.getChain();
+    const chain = BlockchainStorage.getChain();
     const { CryptoUtils } = await import('../crypto');
 
     for (let i = 1; i < chain.length; i++) {
@@ -55,9 +50,16 @@ export const LedgerEngine = {
       // Verify block link
       if (current.previousHash !== previous.hash) return { valid: false, errorIndex: i };
 
-      // Verify block integrity using dedicated function
-      const isBlockValid = await CryptoUtils.validateBlockIntegrity(current);
-      if (!isBlockValid) return { valid: false, errorIndex: i };
+      // Verify block hash
+      const blockData = { 
+        index: current.index, 
+        timestamp: current.timestamp, 
+        merkleRoot: current.merkleRoot, 
+        previousHash: current.previousHash, 
+        nonce: current.nonce 
+      };
+      const recalculatedHash = await CryptoUtils.hash(blockData);
+      if (recalculatedHash !== current.hash) return { valid: false, errorIndex: i };
     }
 
     return { valid: true };

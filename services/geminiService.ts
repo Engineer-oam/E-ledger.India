@@ -1,10 +1,11 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { LedgerService } from "./ledgerService";
 
 export const GeminiService = {
   analyzeLedger: async (userQuery: string): Promise<string> => {
-    // Fix: SDK must be initialized exactly as 'new GoogleGenAI({ apiKey: process.env.API_KEY })' per guidelines
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    // Correct initialization with named parameter for API key.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     // Fetch real-time ledger data for context
     let batches = [];
@@ -33,16 +34,19 @@ export const GeminiService = {
     `;
 
     try {
+      // Use gemini-3-pro-preview for complex reasoning tasks like supply chain forensic audit.
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts: [{ text: `User Query: ${userQuery}` }] }],
+        model: 'gemini-3-pro-preview',
+        contents: `User Query: ${userQuery}`,
         config: {
           systemInstruction,
-          temperature: 0.2, // Low temperature for high audit accuracy
-          thinkingConfig: { thinkingBudget: 0 } // Flash model, no thinking budget needed
+          temperature: 0.1, // Low temperature for maximum audit accuracy.
+          // Set thinking budget for deeper reasoning during analysis.
+          thinkingConfig: { thinkingBudget: 32768 }
         },
       });
 
+      // Extract generated text using the property directly.
       return response.text || "I was unable to analyze the data. Please try rephrasing your request.";
     } catch (error) {
       console.error("Gemini API Error:", error);

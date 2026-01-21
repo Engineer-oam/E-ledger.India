@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Sector } from '../types';
 import { 
@@ -45,6 +46,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       case Sector.PHARMA: return { icon: Pill, color: 'from-emerald-500 to-emerald-700', label: 'Pharma / Drug' };
       case Sector.FMCG: return { icon: ShoppingBag, color: 'from-amber-500 to-amber-700', label: 'FMCG Goods' };
       case Sector.AGRICULTURE: return { icon: Leaf, color: 'from-green-600 to-green-800', label: 'Agri Produce' };
+      // Adding branding for LOGISTICS sector
+      case Sector.LOGISTICS: return { icon: Truck, color: 'from-blue-500 to-blue-700', label: 'Logistics Hub' };
       default: return { icon: Box, color: 'from-slate-500 to-slate-700', label: 'Inventory' };
     }
   };

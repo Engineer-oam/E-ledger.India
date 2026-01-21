@@ -1,9 +1,11 @@
 
+
 export enum Sector {
   EXCISE = 'EXCISE',
   PHARMA = 'PHARMA',
   FMCG = 'FMCG',
-  AGRICULTURE = 'AGRICULTURE'
+  AGRICULTURE = 'AGRICULTURE',
+  LOGISTICS = 'LOGISTICS'
 }
 
 export enum ERPType {
@@ -137,8 +139,9 @@ export interface SaleOrder {
 export interface CountryConfig {
   code: string;
   name: string;
+  // Fix: Made sectors optional to support countries that only have a subset of industries
   sectors: {
-    [key in Sector]: {
+    [key in Sector]?: {
       roles: Array<{
         role: UserRole;
         label: string;
