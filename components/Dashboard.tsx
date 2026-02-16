@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Batch, BatchStatus } from '../types';
 import { LedgerService } from '../services/ledgerService';
@@ -47,7 +46,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-slate-900 rounded-full"></div>
           </div>
           <div>
-            <h2 className="text-2xl font-black tracking-tight">E-Ledger Mainnet Node</h2>
+            <h2 className="text-2xl font-black tracking-tight">E-Ledger India Mainnet</h2>
             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mt-1">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               Synchronized & Validated • Block #15,804

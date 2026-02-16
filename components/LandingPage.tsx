@@ -39,8 +39,8 @@ const LandingPage: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
           <div className="flex items-center gap-3">
             <Logo size="md" />
             <div>
-                <span className="text-2xl font-black text-slate-900 tracking-tighter uppercase block leading-none">E-Ledger</span>
-                <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest block leading-none">India Pharma Grid</span>
+                <span className="text-2xl font-black text-slate-900 tracking-tighter uppercase block leading-none">E-Ledger India</span>
+                <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest block leading-none">National Pharma Grid</span>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-4">

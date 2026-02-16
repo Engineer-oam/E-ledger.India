@@ -147,7 +147,7 @@ const Signup: React.FC = () => {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-8">
                 <Logo size="sm" />
-                <span className="font-bold text-lg tracking-tight">E-Ledger</span>
+                <span className="font-bold text-lg tracking-tight">E-Ledger India</span>
             </div>
             <h2 className="text-3xl font-black mb-4 tracking-tighter leading-tight">
               Join the <br/>

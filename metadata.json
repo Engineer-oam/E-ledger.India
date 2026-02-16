@@ -1,5 +1,5 @@
 {
-  "name": "E-Ledger",
+  "name": "E-Ledger India",
   "description": "A permissioned, GS1-compliant blockchain ledger for Excise and Pharma supply chains.",
   "requestFramePermissions": [
     "camera"

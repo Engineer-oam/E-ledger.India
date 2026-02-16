@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               <Logo size="sm" />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tighter">E-LEDGER</h1>
+              <h1 className="text-xl font-black tracking-tighter">E-LEDGER INDIA</h1>
               <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Pharma Hub</p>
             </div>
           </div>
