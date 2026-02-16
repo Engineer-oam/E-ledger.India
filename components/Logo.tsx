@@ -7,10 +7,10 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ className = "", size = "md" }) => {
   const sizeClasses = {
-    sm: "h-8 w-8",
-    md: "h-12 w-12",
-    lg: "h-32 w-32",
-    xl: "h-64 w-64"
+    sm: "h-10 w-10 p-1.5",
+    md: "h-14 w-14 p-2",
+    lg: "h-32 w-32 p-4",
+    xl: "h-64 w-64 p-8"
   };
 
   const cx = 250;
@@ -75,26 +75,48 @@ const Logo: React.FC<LogoProps> = ({ className = "", size = "md" }) => {
   ];
 
   return (
-    <div className={`relative flex items-center justify-center flex-shrink-0 ${sizeClasses[size]} ${className}`}>
+    <div className={`relative flex items-center justify-center flex-shrink-0 bg-white rounded-full shadow-md ${sizeClasses[size]} ${className}`}>
       <svg viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <defs>
-          <linearGradient id="eNavy" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#1a3a5a" />
-            <stop offset="100%" stopColor="#0F2437" />
+          <style>
+            {`
+              @keyframes spin-slow { 
+                from { transform: rotate(0deg); } 
+                to { transform: rotate(360deg); } 
+              }
+              .logo-ring { 
+                transform-origin: 250px 250px; 
+                animation: spin-slow 20s linear infinite; 
+              }
+              @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+              }
+              .logo-blocks {
+                animation: float 4s ease-in-out infinite;
+              }
+            `}
+          </style>
+
+          <linearGradient id="eTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#2dd4bf" />
+            <stop offset="100%" stopColor="#0d9488" />
           </linearGradient>
+          
           <linearGradient id="hexBorder" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0a5c57" />
-            <stop offset="50%" stopColor="#1ccfc2" />
-            <stop offset="100%" stopColor="#0a5c57" />
+            <stop offset="0%" stopColor="#14b8a6" />
+            <stop offset="50%" stopColor="#5eead4" />
+            <stop offset="100%" stopColor="#14b8a6" />
           </linearGradient>
-          {/* Clip path for inner border effect */}
+          
           <clipPath id="hexClip">
             <path d={hexSlabPath} />
           </clipPath>
+          
           <filter id="brandingShadow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="7" result="blur" />
-            <feOffset dx="-9" dy="9" in="blur" result="offsetBlur" />
-            <feFlood floodColor="#000" floodOpacity="0.12" result="color" />
+            <feOffset dx="-5" dy="5" in="blur" result="offsetBlur" />
+            <feFlood floodColor="#000" floodOpacity="0.15" result="color" />
             <feComposite in="color" in2="offsetBlur" operator="in" />
             <feMerge>
               <feMergeNode />
@@ -104,25 +126,28 @@ const Logo: React.FC<LogoProps> = ({ className = "", size = "md" }) => {
         </defs>
 
         <g filter="url(#brandingShadow)">
-          <path d={ringPath} fill="url(#eNavy)" />
-          <path d={trianglePath} fill="url(#eNavy)" />
+          <g className="logo-ring">
+            <path d={ringPath} fill="url(#eTeal)" />
+          </g>
+          
+          <path d={trianglePath} fill="url(#eTeal)" />
 
-          {blockPositions.map((pos, i) => (
-            <g key={i} transform={`translate(${pos.x}, ${pos.y})`}>
-              {/* Fill */}
-              <path d={hexSlabPath} fill="#ffffff" />
-              {/* Clipped Inner Border */}
-              <g clipPath="url(#hexClip)">
-                <path 
-                  d={hexSlabPath} 
-                  fill="none" 
-                  stroke="url(#hexBorder)" 
-                  strokeWidth="20" 
-                  strokeLinejoin="round"
-                />
+          <g className="logo-blocks">
+            {blockPositions.map((pos, i) => (
+              <g key={i} transform={`translate(${pos.x}, ${pos.y})`}>
+                <path d={hexSlabPath} fill="#ffffff" />
+                <g clipPath="url(#hexClip)">
+                  <path 
+                    d={hexSlabPath} 
+                    fill="none" 
+                    stroke="url(#hexBorder)" 
+                    strokeWidth="20" 
+                    strokeLinejoin="round"
+                  />
+                </g>
               </g>
-            </g>
-          ))}
+            ))}
+          </g>
         </g>
       </svg>
     </div>

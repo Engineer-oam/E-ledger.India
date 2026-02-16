@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, Loader2, Building2, UserCircle, RefreshCw, 
   ArrowRight, Globe, Pill, Cpu, Check, Lock, Search, X, ChevronDown,
-  CheckCircle2, Tags, Stethoscope
+  CheckCircle2, Tags, Stethoscope, FileText, UploadCloud, AlertCircle
 } from 'lucide-react';
 import Logo from './Logo';
 
@@ -29,15 +29,10 @@ const Signup: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [gstValid, setGstValid] = useState<boolean | null>(null);
+  const [licenseFile, setLicenseFile] = useState<string | null>(null);
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const filteredCountries = useMemo(() => {
-    return REGISTRY_CONFIG.filter(c => 
-      c.name.toLowerCase().includes(countrySearch.toLowerCase()) || 
-      c.code.toLowerCase().includes(countrySearch.toLowerCase())
-    ).sort((a, b) => a.name.localeCompare(b.name));
-  }, [countrySearch]);
 
   const selectedCountry = useMemo(() => 
     REGISTRY_CONFIG.find(c => c.code === formData.country), 
@@ -51,13 +46,7 @@ const Signup: React.FC = () => {
   }, [selectedCountry]);
 
   useEffect(() => {
-    if (isCountryModalOpen) {
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
-  }, [isCountryModalOpen]);
-
-  useEffect(() => {
-    if (availablePositions.length > 0) {
+    if (availablePositions.length > 0 && !formData.positionLabel) {
       setFormData(prev => ({
         ...prev,
         role: availablePositions[0].role,
@@ -68,14 +57,27 @@ const Signup: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    if (name === 'position') {
-      const pos = availablePositions.find(p => p.label === value);
-      if (pos) {
-        setFormData(prev => ({ ...prev, role: pos.role, positionLabel: pos.label }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // GSTIN Validation Logic
+    if (name === 'gln') {
+       // Simple Regex for GSTIN: 2 digits, 5 chars, 4 digits, 1 char, 1 digit/char, Z, 1 digit/char
+       const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+       if (value.length > 0) {
+         setGstValid(gstRegex.test(value));
+       } else {
+         setGstValid(null);
+       }
     }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleRoleSelect = (roleItem: any) => {
+    setFormData(prev => ({ 
+        ...prev, 
+        role: roleItem.role, 
+        positionLabel: roleItem.label 
+    }));
   };
 
   const toggleSubCategory = (category: string) => {
@@ -89,16 +91,16 @@ const Signup: React.FC = () => {
     });
   };
 
-  const handleCountrySelect = (code: string) => {
-    setFormData(prev => ({ ...prev, country: code }));
-    setIsCountryModalOpen(false);
-    setCountrySearch('');
-  };
-
   const handleGenerateGLN = (e: React.MouseEvent) => {
     e.preventDefault();
     const newGln = AuthService.generateGLN();
     setFormData(prev => ({ ...prev, gln: newGln }));
+    setGstValid(true); // Mock valid for generated
+  };
+
+  const handleFileUpload = () => {
+    // Simulation
+    setTimeout(() => setLicenseFile("drug_license_form_20.pdf"), 800);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,7 +109,7 @@ const Signup: React.FC = () => {
     setLoading(true);
 
     try {
-      if (formData.gln.length !== 13) throw new Error('Identifier must be 13 digits (GS1 Standard).');
+      if (formData.gln.length !== 13 && !gstValid) throw new Error('Valid GSTIN or 13-digit GLN required.');
       
       await AuthService.signup(
         formData.name,
@@ -132,130 +134,228 @@ const Signup: React.FC = () => {
     }
   };
 
-  const getCountryFlag = (countryCode: string) => {
-    if (!countryCode || countryCode.length !== 2) return '🌐';
-    return countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => String.fromCodePoint(char.charCodeAt(0) + 127397))
-      .join('');
-  };
-
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f0fdfa] flex items-center justify-center p-4">
       
-      <div className="max-w-4xl w-full bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row max-h-[90vh] min-h-[600px]">
+      <div className="max-w-5xl w-full bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(13,148,136,0.15)] overflow-hidden flex flex-col md:flex-row max-h-[90vh] min-h-[650px]">
         
-        {/* Left Sidebar */}
-        <div className="hidden md:flex w-[38%] bg-[#0f172a] p-8 text-white flex-col justify-between relative overflow-hidden">
+        {/* Left Sidebar - Branding & Trust */}
+        <div className="hidden md:flex w-[35%] bg-[#0f172a] p-10 text-white flex-col justify-between relative overflow-hidden">
+          {/* Background FX */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-900/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          
           <div className="relative z-10">
-            <div className="inline-block p-3 bg-white rounded-xl mb-6 shadow-xl">
-              <Logo size="md" />
+            <div className="flex items-center gap-3 mb-8">
+                <Logo size="sm" />
+                <span className="font-bold text-lg tracking-tight">E-Ledger</span>
             </div>
-            <h2 className="text-2xl font-black mb-2 tracking-tight">E-Ledger India</h2>
+            <h2 className="text-3xl font-black mb-4 tracking-tighter leading-tight">
+              Join the <br/>
+              <span className="text-teal-400">Secure Pharma</span> <br/>
+              Network.
+            </h2>
             <p className="text-slate-400 text-xs leading-relaxed max-w-xs">
-              Secure Pharmaceutical Supply Chain Network. CDSCO & GST Compliant.
+              Onboard your entity to India's unified drug traceability ledger. Ensure compliance with CDSCO & iVEDA mandates.
             </p>
           </div>
 
-          <div className="relative z-10 space-y-6">
-             {[1, 2, 3, 4].map(s => (
-                <div key={s} className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step === s ? 'bg-teal-600 shadow-[0_0_15px_rgba(13,148,136,0.4)]' : 'bg-slate-800 text-slate-500'}`}>{s}</div>
-                  <p className={`font-bold text-xs tracking-wide ${step === s ? 'text-white' : 'text-slate-500'}`}>
-                    {s === 1 ? 'Market Context' : s === 2 ? 'Identity & License' : s === 3 ? 'ERP Protocol' : 'Finalize Keys'}
-                  </p>
-                </div>
-             ))}
+          <div className="relative z-10 space-y-8">
+             <div className="space-y-4">
+                {[
+                    { title: "Market Context", desc: "India (CDSCO)" }, 
+                    { title: "Legal Identity", desc: "GSTIN / Drug Lic." }, 
+                    { title: "System Link", desc: "ERP Adapter" }, 
+                    { title: "Cryptographic Keys", desc: "Node Security" }
+                ].map((s, idx) => (
+                    <div key={idx} className={`flex items-center gap-4 group ${step === idx + 1 ? 'opacity-100' : 'opacity-40'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border ${step === idx + 1 ? 'bg-teal-500 border-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)]' : 'border-slate-600 text-slate-400'}`}>
+                            {step > idx + 1 ? <Check size={14} /> : idx + 1}
+                        </div>
+                        <div>
+                            <p className={`font-bold text-xs uppercase tracking-wider ${step === idx + 1 ? 'text-white' : 'text-slate-400'}`}>{s.title}</p>
+                            <p className="text-[10px] text-slate-500">{s.desc}</p>
+                        </div>
+                    </div>
+                ))}
+             </div>
           </div>
 
-          <div className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em] relative z-10">
-            Protocol: Drugs & Cosmetics Act, 1940
+          <div className="relative z-10 pt-6 border-t border-slate-800">
+             <div className="flex gap-4">
+                <div className="flex items-center gap-1.5 opacity-60">
+                    <ShieldCheck size={14} className="text-teal-400" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">SOC2 Type II</span>
+                </div>
+                <div className="flex items-center gap-1.5 opacity-60">
+                    <Globe size={14} className="text-blue-400" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">GS1 India</span>
+                </div>
+             </div>
           </div>
         </div>
 
         {/* Right Form Area */}
-        <div className="flex-1 flex flex-col bg-white overflow-hidden">
-          <div className="p-8 pb-4 shrink-0 flex justify-between items-start">
-             <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Register Node</h2>
-                <p className="text-slate-400 text-[11px] font-bold mt-0.5 uppercase tracking-widest">Stage {step} of 4</p>
+        <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
+          <div className="p-8 pb-2 shrink-0 flex justify-end">
+             <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Already a partner?</p>
+                <Link to="/login" className="text-sm font-bold text-teal-700 hover:text-teal-900 flex items-center justify-end gap-1 group">
+                    Access Node <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
              </div>
-             <Link to="/login" className="px-4 py-1.5 bg-[#eff2f9] text-[#4d69ff] rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-[#e0e7ff] transition-all">Sign In</Link>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-8 pb-8 custom-scrollbar">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-8 custom-scrollbar">
+          <form onSubmit={handleSubmit} className="h-full flex flex-col">
+            
+            {/* STEP 1: JURISDICTION */}
             {step === 1 && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                {/* Active Market Card */}
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Jurisdiction</label>
-                  <div className="flex items-center justify-between p-5 bg-teal-50 border border-teal-100 rounded-2xl">
-                     <div className="flex items-center gap-4">
-                        <div className="text-3xl font-bold text-teal-200 font-mono tracking-tighter">
-                          {formData.country}
-                        </div>
-                        <div className="text-left">
-                           <p className="text-[9px] font-black text-teal-700 uppercase tracking-widest leading-none mb-1">Active Market</p>
-                           <p className="text-lg font-black text-slate-900 tracking-tight">India</p>
-                        </div>
-                     </div>
-                     <span className="text-2xl">🇮🇳</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 italic font-medium px-1 leading-tight">Regulatory reporting and serialization rules adapt to Indian standards (iVEDA).</p>
+              <div className="my-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="text-center">
+                    <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-teal-600">
+                        <Globe size={32} />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Confirm Jurisdiction</h3>
+                    <p className="text-sm text-slate-500 max-w-md mx-auto">
+                        E-Ledger nodes enforce regulatory rules based on the operating region. Please confirm your primary market.
+                    </p>
                 </div>
 
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                   <div className="flex items-start gap-4">
-                      <div className="p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-indigo-600">
-                         <Stethoscope size={24} />
-                      </div>
-                      <div>
-                         <h4 className="font-bold text-slate-800 text-sm">Pharmaceutical Supply Chain</h4>
-                         <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                            This node will be initialized for drug tracking, Schedule H1 monitoring, and anti-counterfeit verification.
-                         </p>
-                      </div>
-                   </div>
+                <div className="p-1 bg-slate-50 rounded-2xl border border-slate-200">
+                    <button type="button" className="w-full bg-white p-6 rounded-xl shadow-sm border border-teal-100 flex items-center justify-between group hover:border-teal-500 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <span className="text-4xl">🇮🇳</span>
+                            <div className="text-left">
+                                <span className="block text-lg font-bold text-slate-900">India</span>
+                                <span className="text-xs text-slate-500 font-medium">CDSCO / GST / iVEDA Protocol</span>
+                            </div>
+                        </div>
+                        <div className="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center text-white">
+                            <Check size={14} />
+                        </div>
+                    </button>
                 </div>
                 
-                <button type="button" onClick={() => setStep(2)} className="w-full bg-[#0f172a] hover:bg-slate-800 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-[0.98] uppercase text-xs tracking-[0.3em]">
-                  Proceed to Identity <ArrowRight size={18} />
+                <button type="button" onClick={() => setStep(2)} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
+                  Confirm & Proceed
                 </button>
               </div>
             )}
 
+            {/* STEP 2: IDENTITY (GST & LICENSE) */}
             {step === 2 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization Details</label>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="relative">
-                      <UserCircle className="absolute left-4 top-3 text-slate-400" size={18} />
-                      <input name="name" required value={formData.name} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#f8faff] border-transparent rounded-xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all" placeholder="Authorized Signatory" />
-                    </div>
-                    <div className="relative">
-                      <Building2 className="absolute left-4 top-3 text-slate-400" size={18} />
-                      <input name="orgName" required value={formData.orgName} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#f8faff] border-transparent rounded-xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all" placeholder="Registered Entity Name" />
-                    </div>
-                  </div>
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900">Entity Verification</h3>
+                    <p className="text-xs text-slate-500 mt-1">Provide your legal business details for KYC.</p>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Role & License</label>
-                  <select name="position" value={formData.positionLabel} onChange={handleChange} className="w-full px-4 py-3 bg-[#f8faff] border-transparent rounded-xl outline-none text-sm font-bold text-slate-700 focus:bg-white">
-                    {availablePositions.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
-                  </select>
-                  
-                  {/* Always Show Pharma Sub-Categories */}
-                  <div className="space-y-2 pt-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Authorized Person</label>
+                        <div className="relative">
+                            <UserCircle className="absolute left-3 top-3 text-slate-400" size={18} />
+                            <input name="name" required value={formData.name} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition-all" placeholder="Full Name" />
+                        </div>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Organization Name</label>
+                        <div className="relative">
+                            <Building2 className="absolute left-3 top-3 text-slate-400" size={18} />
+                            <input name="orgName" required value={formData.orgName} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition-all" placeholder="Legal Entity Name" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase flex justify-between">
+                        <span>GSTIN / Global Location Number</span>
+                        {gstValid === true && <span className="text-teal-600 flex items-center gap-1"><CheckCircle2 size={10} /> Valid Format</span>}
+                        {gstValid === false && <span className="text-red-500 flex items-center gap-1"><AlertCircle size={10} /> Invalid Format</span>}
+                    </label>
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <Globe className="absolute left-3 top-3 text-slate-400" size={18} />
+                            <input 
+                                name="gln" 
+                                required 
+                                maxLength={15} 
+                                value={formData.gln} 
+                                onChange={handleChange} 
+                                className={`w-full pl-10 pr-4 py-3 bg-slate-50 border rounded-xl text-sm font-mono focus:bg-white outline-none transition-all ${gstValid === false ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-2 focus:ring-teal-500'}`} 
+                                placeholder="27AAPCA1234A1Z5" 
+                            />
+                        </div>
+                        <button type="button" onClick={handleGenerateGLN} className="px-4 bg-slate-100 rounded-xl hover:bg-slate-200 text-slate-600 transition-colors" title="Generate Demo GLN">
+                            <RefreshCw size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Simulated File Upload */}
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Drug License (Form 20/21)</label>
+                    <div 
+                        onClick={handleFileUpload}
+                        className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${licenseFile ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-400 hover:bg-slate-50'}`}
+                    >
+                        {licenseFile ? (
+                            <>
+                                <FileText size={24} className="text-teal-600 mb-2" />
+                                <p className="text-xs font-bold text-teal-800">{licenseFile}</p>
+                                <p className="text-[10px] text-teal-600">Uploaded Successfully</p>
+                            </>
+                        ) : (
+                            <>
+                                <UploadCloud size={24} className="text-slate-400 mb-2" />
+                                <p className="text-xs font-bold text-slate-600">Click to Upload License PDF</p>
+                                <p className="text-[10px] text-slate-400">Max size 5MB. Required for Trade.</p>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 mt-auto">
+                  <button type="button" onClick={() => setStep(1)} className="px-6 py-4 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors">Back</button>
+                  <button type="button" onClick={() => setStep(3)} className="flex-1 bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] uppercase text-xs tracking-widest">Select Role</button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: ROLE & SCOPE */}
+            {step === 3 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900">Operational Role</h3>
+                    <p className="text-xs text-slate-500 mt-1">Select your primary function in the supply chain.</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {availablePositions.map((p) => (
+                        <button
+                            key={p.label}
+                            type="button"
+                            onClick={() => handleRoleSelect(p)}
+                            className={`p-4 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${formData.positionLabel === p.label ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-500' : 'border-slate-100 hover:border-slate-300'}`}
+                        >
+                            <div className={`mt-1 p-2 rounded-lg ${formData.positionLabel === p.label ? 'bg-teal-200 text-teal-800' : 'bg-slate-100 text-slate-500'}`}>
+                                {p.role === UserRole.MANUFACTURER ? <FactoryIcon /> : p.role === UserRole.DISTRIBUTOR ? <TruckIcon /> : p.role === UserRole.RETAILER ? <StoreIcon /> : <ShieldIcon />}
+                            </div>
+                            <div>
+                                <p className={`text-sm font-bold ${formData.positionLabel === p.label ? 'text-teal-900' : 'text-slate-800'}`}>{p.label}</p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">{p.description}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="space-y-2 pt-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
                       <Tags size={12} />
-                      Operational Scope
+                      Business Categories
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {PHARMA_SUB_CATEGORIES.map(category => (
+                      {PHARMA_SUB_CATEGORIES.slice(0, 8).map(category => (
                         <button
                           key={category}
                           type="button"
@@ -263,105 +363,74 @@ const Signup: React.FC = () => {
                           className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
                             formData.subCategories.includes(category)
                               ? 'bg-teal-600 text-white border-teal-600 shadow-md'
-                              : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                           }`}
                         >
                           {category}
                         </button>
                       ))}
                     </div>
-                    <p className="text-[9px] text-slate-400 italic">Select all domains covered by your FDA/Drug Control license.</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Globe className="absolute left-4 top-3 text-slate-400" size={18} />
-                      <input name="gln" required maxLength={13} minLength={13} value={formData.gln} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#f8faff] border-transparent rounded-xl text-sm font-mono focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all" placeholder="License No. / GSTIN (13 digit GLN)" />
-                    </div>
-                    <button type="button" onClick={handleGenerateGLN} className="px-4 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors" title="Generate Demo GLN">
-                      <RefreshCw size={18} className="text-slate-600" />
-                    </button>
-                  </div>
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setStep(1)} className="flex-1 py-4 border-2 border-[#eff2f9] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:bg-slate-50 transition-colors">Back</button>
-                  <button type="button" onClick={() => setStep(3)} className="flex-[2] bg-[#0f172a] text-white font-black py-4 rounded-xl uppercase text-[10px] tracking-[0.2em] shadow-xl">Integrate ERP</button>
+                <div className="flex gap-3 pt-4 mt-auto">
+                  <button type="button" onClick={() => setStep(2)} className="px-6 py-4 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors">Back</button>
+                  <button type="button" onClick={() => setStep(4)} className="flex-1 bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] uppercase text-xs tracking-widest">Connect System</button>
                 </div>
               </div>
             )}
 
-            {step === 3 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                <div className="bg-[#f0f4ff] p-5 rounded-2xl flex gap-4 border border-[#e0e7ff]">
-                  <div className="p-3 bg-[#4d69ff] rounded-xl text-white shadow-lg shrink-0 h-fit">
-                    <Cpu size={22} />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-[#0f172a] text-[13px] uppercase tracking-tight">Middleware Integration</h4>
-                    <p className="text-[11px] text-[#5c6b8c] leading-relaxed font-medium mt-1">Connect your internal system to the blockchain gateway.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2">
-                   {Object.values(ERPType).map(type => (
-                     <button key={type} type="button" onClick={() => setFormData({...formData, erpType: type})} className={`p-4 rounded-xl flex justify-between items-center transition-all ${formData.erpType === type ? 'bg-white border-2 border-[#4d69ff] shadow-lg' : 'bg-[#f8faff] border-2 border-transparent hover:bg-[#f1f5ff]'}`}>
-                        <div className="flex flex-col text-left">
-                          <span className={`font-black text-[11px] uppercase tracking-widest ${formData.erpType === type ? 'text-[#4d69ff]' : 'text-slate-400'}`}>{type}</span>
-                          <span className="text-[9px] text-slate-500 font-bold mt-0.5 uppercase tracking-tighter">{type === ERPType.MANUAL ? 'Standard Web Terminal' : 'API Connection Hook'}</span>
-                        </div>
-                        {formData.erpType === type && <div className="w-5 h-5 bg-[#4d69ff] rounded-full flex items-center justify-center text-white"><Check size={12} strokeWidth={4} /></div>}
-                     </button>
-                   ))}
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setStep(2)} className="flex-1 py-4 border-2 border-[#eff2f9] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Back</button>
-                  <button type="button" onClick={() => setStep(4)} className="flex-[2] bg-[#0f172a] text-white font-black py-4 rounded-xl uppercase text-[10px] tracking-[0.2em] shadow-xl">Final Security</button>
-                </div>
-              </div>
-            )}
-
+            {/* STEP 4: SECURE & FINALIZE */}
             {step === 4 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Node Secret</label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-3 text-slate-400" size={18} />
-                    <input name="password" type="password" required value={formData.password} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#f8faff] border-transparent rounded-xl text-sm focus:bg-white focus:ring-4 focus:ring-[#4d69ff]/10 outline-none" placeholder="••••••••••••" />
-                  </div>
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900">Secure Node</h3>
+                    <p className="text-xs text-slate-500 mt-1">Set your master key for signing transactions.</p>
                 </div>
 
-                <div className="bg-[#f8faff] p-6 rounded-2xl border border-[#e8effd] space-y-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <CheckCircle2 size={14} className="text-emerald-500" />
-                    Terminal Summary
+                <div className="space-y-4">
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+                        <input name="password" type="password" required value={formData.password} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-slate-50 border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none" placeholder="Create Master Password" />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2">
+                       {Object.values(ERPType).map(type => (
+                         <button key={type} type="button" onClick={() => setFormData({...formData, erpType: type})} className={`px-4 py-3 rounded-xl flex justify-between items-center transition-all ${formData.erpType === type ? 'bg-indigo-50 border-2 border-indigo-500 text-indigo-700' : 'bg-slate-50 border-2 border-transparent text-slate-500 hover:bg-slate-100'}`}>
+                            <span className="text-xs font-bold">{type}</span>
+                            {formData.erpType === type && <CheckCircle2 size={16} />}
+                         </button>
+                       ))}
+                    </div>
+                </div>
+
+                <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100 space-y-3">
+                  <h4 className="text-[10px] font-black text-teal-800 uppercase tracking-widest flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-teal-600" />
+                    Configuration Summary
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
                     <div>
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Region Node</span>
-                      <span className="text-xs font-black text-slate-900 truncate block">INDIA</span>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Entity</span>
+                        <span className="font-bold text-slate-800 truncate block">{formData.orgName}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Sector Protocol</span>
-                      <span className="text-xs font-black text-slate-900 truncate block">PHARMA (CDSCO)</span>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Role</span>
+                        <span className="font-bold text-slate-800 truncate block">{formData.positionLabel}</span>
+                    </div>
+                    <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">License ID</span>
+                        <span className="font-mono font-bold text-slate-800 truncate block">{formData.gln}</span>
+                    </div>
+                    <div>
+                        <span className="block text-[9px] font-bold text-slate-400 uppercase">Protocol</span>
+                        <span className="font-bold text-slate-800 truncate block">GS1 / EPCIS</span>
                     </div>
                   </div>
-                  {formData.subCategories.length > 0 && (
-                    <div>
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Operations</span>
-                      <div className="flex flex-wrap gap-1">
-                        {formData.subCategories.map(sub => (
-                          <span key={sub} className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold uppercase">{sub}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setStep(3)} className="flex-1 py-4 border-2 border-[#eff2f9] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Back</button>
-                  <button type="submit" disabled={loading} className="flex-[2] bg-[#4d69ff] text-white font-black py-4 rounded-xl shadow-xl shadow-[#4d69ff]/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase text-[10px] tracking-[0.2em]">
+                <div className="flex gap-3 pt-2 mt-auto">
+                  <button type="button" onClick={() => setStep(3)} className="px-6 py-4 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors">Back</button>
+                  <button type="submit" disabled={loading} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase text-xs tracking-widest">
                     {loading ? <Loader2 size={18} className="animate-spin" /> : <span>Initialize Terminal</span>}
                   </button>
                 </div>
@@ -374,5 +443,11 @@ const Signup: React.FC = () => {
     </div>
   );
 };
+
+// Simple Icons for Roles
+const FactoryIcon = () => <Building2 size={20} />;
+const TruckIcon = () => <ArrowRight size={20} />;
+const StoreIcon = () => <Building2 size={20} />; 
+const ShieldIcon = () => <ShieldCheck size={20} />;
 
 export default Signup;
