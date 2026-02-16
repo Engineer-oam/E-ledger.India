@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { AuthService } from '../services/authService';
-import { UserCircle, Building2, MapPin, Shield, Save, Loader2, Cpu, ArrowRight } from 'lucide-react';
+import { UserCircle, Building2, MapPin, Shield, Save, Loader2, Cpu, ArrowRight, Tags } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 
@@ -98,6 +97,23 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onUpdate }) => {
                       />
                     </div>
                   </div>
+
+                  {/* Sub Categories Display */}
+                  {user.subCategories && user.subCategories.length > 0 && (
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-2 tracking-wider flex items-center gap-1">
+                        <Tags size={14} />
+                        Operating Categories
+                      </label>
+                      <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        {user.subCategories.map((cat, idx) => (
+                          <span key={idx} className="bg-white border border-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Editable Fields */}
                   <div className="md:col-span-2 border-t border-slate-100 pt-6 mt-2">

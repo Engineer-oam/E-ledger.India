@@ -1,4 +1,5 @@
 
+
 import { User, UserRole, Sector, ERPType } from '../types';
 import { MOCK_USERS } from '../constants';
 
@@ -53,7 +54,7 @@ export const AuthService = {
     gln: string, 
     role: UserRole, 
     password: string,
-    context: { country: string, sector: Sector, positionLabel: string, erpType: ERPType, erpStatus: any }
+    context: { country: string, sector: Sector, positionLabel: string, erpType: ERPType, erpStatus: any, subCategories?: string[] }
   ): Promise<User> => {
     if (isRemote()) {
       try {

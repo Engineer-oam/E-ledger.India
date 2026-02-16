@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Printer, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Printer, ShieldCheck, AlertTriangle, AlertOctagon } from 'lucide-react';
 import { BatchStatus } from '../types';
 
 interface BatchLabelProps {
@@ -14,94 +14,78 @@ interface BatchLabelProps {
 
 const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName, status, hidePrintButton = false }) => {
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return '000000';
+    if (!dateStr) return '00/0000';
     try {
       const d = new Date(dateStr);
-      const yy = d.getFullYear().toString().slice(-2);
       const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-      const dd = d.getDate().toString().padStart(2, '0');
-      return `${yy}${mm}${dd}`;
+      const yyyy = d.getFullYear().toString();
+      return `${mm}/${yyyy}`;
     } catch {
-      return '000000';
+      return '00/0000';
     }
   };
 
-  const expShort = formatDate(expiry);
-  const gs1Text = `(01)${gtin || '00'}(17)${expShort}(10)${lot || '000'}`;
+  const expDate = formatDate(expiry);
+  const mfgDate = formatDate(new Date().toISOString()); // Simulated
+  const gs1Text = `(01)${gtin || '00'}(17)${expDate.replace('/','')}(10)${lot || '000'}`;
   const encodedText = encodeURIComponent(gs1Text);
 
-  const isDutyPaid = status === BatchStatus.DUTY_PAID || status === BatchStatus.SOLD;
-  const isBonded = !status || status === BatchStatus.BONDED || status === BatchStatus.CREATED;
-
+  // Indian Pharma Label Colors
+  // Schedule H/H1 typically has a red line or box.
+  
   return (
-    <div className={`relative w-full max-w-sm rounded-lg overflow-hidden border shadow-md group print:border-black print:shadow-none bg-white
-        ${isDutyPaid ? 'border-emerald-200' : 'border-amber-200'}
-    `}>
+    <div className={`relative w-full max-w-sm bg-white border border-slate-300 shadow-md group print:border-black print:shadow-none overflow-hidden`}>
         
-        {/* Holographic Overlay Layer (CSS Simulation) */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style={{
-            background: 'linear-gradient(135deg, rgba(255,0,0,0.1) 0%, rgba(0,255,0,0.1) 50%, rgba(0,0,255,0.1) 100%)',
-            mixBlendMode: 'color-dodge'
-        }}></div>
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        
-        {/* Security Strip */}
-        <div className={`absolute top-0 right-4 w-2 h-full bg-gradient-to-b opacity-60 z-10 print:opacity-30
-            ${isDutyPaid ? 'from-green-300 via-emerald-500 to-green-300' : 'from-yellow-300 via-amber-500 to-yellow-300'}
-        `}></div>
-
-        <div className="relative z-10 bg-white/90 p-3 flex flex-col gap-2">
+        <div className="flex">
+            {/* The Red Line (Schedule H Warning) */}
+            <div className="w-1.5 bg-red-600 h-auto shrink-0 print:bg-black"></div>
             
-            {/* Header: State Excise */}
-            <div className={`flex justify-between items-center border-b-2 pb-2 ${isDutyPaid ? 'border-emerald-800' : 'border-amber-800'}`}>
-                 <div className="flex items-center gap-1.5">
-                    <div className={`p-1 rounded-full ${isDutyPaid ? 'bg-emerald-900' : 'bg-amber-700'}`}>
-                        {isDutyPaid ? <ShieldCheck size={14} className="text-white" /> : <AlertTriangle size={14} className="text-white" />}
-                    </div>
-                    <div>
-                        <h4 className={`font-black text-xs uppercase tracking-wider ${isDutyPaid ? 'text-emerald-900' : 'text-amber-900'}`}>
-                            {isDutyPaid ? 'State Excise' : 'Bonded Stock'}
-                        </h4>
-                        <p className={`text-[8px] font-bold tracking-tight ${isDutyPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
-                            GOVERNMENT OF INDIA
-                        </p>
-                    </div>
-                 </div>
-                 <div className="text-[9px] font-bold font-mono text-slate-800 text-right leading-tight">
-                    {isDutyPaid ? (
-                        <>DUTY PAID<br/>NOT FOR SALE<br/>OUTSIDE STATE</>
-                    ) : (
-                        <>DUTY UNPAID<br/>FOR EXPORT /<br/>BONDED USE ONLY</>
-                    )}
-                 </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-                {/* 2D Data Matrix */}
-                <div className="shrink-0 border-2 border-black p-0.5 bg-white relative">
-                    <img 
-                        src={`https://bwipjs-api.metafloor.com/?bcid=datamatrix&text=${encodedText}&scale=2&includetext`}
-                        alt="Excise QR"
-                        className="w-20 h-20 object-contain"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="flex-1 p-3 flex flex-col gap-2">
+                
+                {/* Warning Text */}
+                <div className="border border-red-600 p-1.5 mb-1">
+                    <p className="text-[7px] text-red-600 font-bold leading-tight text-justify">
+                        <span className="font-black">SCHEDULE H PRESCRIPTION DRUG - CAUTION:</span> Not to be sold by retail without the prescription of a Registered Medical Practitioner.
+                    </p>
                 </div>
 
-                <div className="flex-1 space-y-1">
-                     <p className="text-xs font-black text-slate-900 leading-tight uppercase">{productName || 'IMFL SPIRIT'}</p>
-                     <div className="grid grid-cols-2 gap-1 text-[9px] font-mono text-slate-600">
-                         <div>
-                             <span className="block text-[7px] text-slate-400">GTIN</span>
-                             <span className="font-bold text-slate-900">{gtin}</span>
-                         </div>
-                         <div>
-                             <span className="block text-[7px] text-slate-400">BATCH</span>
-                             <span className="font-bold text-slate-900">{lot}</span>
-                         </div>
-                     </div>
-                     <div className="bg-slate-100 px-1 py-0.5 border border-slate-200 rounded text-[8px] text-center font-bold tracking-widest text-slate-500 truncate">
-                         {encodedText.slice(0, 20)}...
-                     </div>
+                {/* Header / Product */}
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h4 className="font-bold text-sm text-slate-900 uppercase leading-none">{productName || 'Genericin 500'}</h4>
+                        <p className="text-[9px] text-slate-500 font-medium mt-0.5">Film Coated Tablets IP</p>
+                    </div>
+                    <div className="text-right">
+                        <div className="border border-black p-0.5 inline-block bg-white">
+                            <img 
+                                src={`https://bwipjs-api.metafloor.com/?bcid=datamatrix&text=${encodedText}&scale=2&includetext`}
+                                alt="GS1 QR"
+                                className="w-12 h-12 object-contain"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Batch Details (Side by Side) */}
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                    <div className="text-[9px] font-mono text-slate-800 space-y-0.5 leading-tight">
+                        <p><span className="font-bold">B.No.:</span> {lot}</p>
+                        <p><span className="font-bold">Mfg.Dt:</span> {mfgDate}</p>
+                        <p><span className="font-bold">Exp.Dt:</span> {expDate}</p>
+                    </div>
+                    <div className="text-[9px] font-mono text-slate-800 space-y-0.5 leading-tight">
+                        <p><span className="font-bold">M.R.P. Rs.:</span> 125.00</p>
+                        <p className="text-[8px] text-slate-500">(Incl. of all taxes)</p>
+                        <p className="mt-1"><span className="font-bold">GTIN:</span> {gtin.slice(0,14)}</p>
+                    </div>
+                </div>
+
+                {/* Manufacturer */}
+                <div className="border-t border-slate-200 pt-1 mt-1">
+                    <p className="text-[8px] text-slate-500">Manufactured in India by:</p>
+                    <p className="text-[9px] font-bold text-slate-800">BHARAT BIOTECH & LIFE SCIENCES</p>
+                    <p className="text-[8px] text-slate-500">Plot No. 402, Industrial Area, Baddi, H.P.</p>
+                    <p className="text-[8px] text-slate-500 font-mono">Mfg. Lic. No.: M/765/2023</p>
                 </div>
             </div>
         </div>
@@ -109,17 +93,17 @@ const BatchLabel: React.FC<BatchLabelProps> = ({ gtin, lot, expiry, productName,
         {/* Actions (Hidden in Print) */}
         {!hidePrintButton && (
             <div className="bg-slate-50 p-2 flex justify-between items-center print:hidden border-t border-slate-200">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    Secure Hologram
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <ShieldCheck size={12} className="text-emerald-600" />
+                    Authentic
                 </span>
                 <button 
                     type="button"
                     onClick={() => window.print()}
-                    className="text-indigo-600 hover:text-indigo-800 text-xs font-bold flex items-center gap-1.5 bg-white border border-indigo-200 px-3 py-1 rounded shadow-sm hover:shadow transition-all"
+                    className="text-slate-600 hover:text-indigo-600 text-xs font-bold flex items-center gap-1.5 bg-white border border-slate-300 px-2 py-1 rounded shadow-sm hover:shadow transition-all"
                 >
-                    <Printer size={14} /> 
-                    <span>Print Label</span>
+                    <Printer size={12} /> 
+                    <span>Print</span>
                 </button>
             </div>
         )}

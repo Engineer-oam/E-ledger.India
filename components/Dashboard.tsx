@@ -1,30 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Batch, User, UserRole, BatchStatus } from '../types';
+
+import React, { useState, useEffect } from 'react';
+import { User, Batch, BatchStatus } from '../types';
 import { LedgerService } from '../services/ledgerService';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, AreaChart, Area
-} from 'recharts';
-import { 
-  Stamp, Activity, Globe, 
-  CheckCircle2, Box, Database, Cloud, ShieldCheck, BarChart3
-} from 'lucide-react';
-import DistributorDashboard from './DistributorDashboard';
-import RetailerDashboard from './RetailerDashboard';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Box, Activity, ShieldCheck, Database, Landmark, TrendingUp } from 'lucide-react';
 
-interface DashboardProps {
-  user: User;
-}
-
-const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }: { title: string; value: string | number; icon: any; color: string; subtitle?: string, trend?: string }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between transition-all hover:shadow-xl group w-full">
-    <div className="space-y-2">
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{title}</p>
-      <div className="flex items-baseline gap-2">
-         <h3 className="text-3xl font-black text-slate-900">{value}</h3>
-         {trend && <span className="text-[10px] font-bold text-emerald-500">{trend}</span>}
-      </div>
-      {subtitle && <p className="text-[10px] font-medium text-slate-400 uppercase">{subtitle}</p>}
+const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
+  <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-start justify-between group transition-all hover:shadow-xl">
+    <div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{title}</p>
+      <h3 className="text-3xl font-black text-slate-900">{value}</h3>
+      {trend && <p className="text-[10px] font-bold text-emerald-500 mt-2 flex items-center gap-1"><TrendingUp size={12}/> {trend} vs Last Week</p>}
     </div>
     <div className={`p-4 rounded-2xl ${color} bg-opacity-10 group-hover:scale-110 transition-transform`}>
       <Icon className={color.replace('bg-', 'text-')} size={24} />
@@ -32,152 +18,105 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }: { title:
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+const Dashboard: React.FC<{ user: User }> = ({ user }) => {
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCloud, setIsCloud] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await LedgerService.getBatches(user);
-      setBatches(data);
-      setIsCloud(!['localhost', '127.0.0.1'].includes(window.location.hostname));
-      setLoading(false);
-    };
-    fetchData();
+    LedgerService.getBatches(user).then(setBatches);
   }, [user]);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-96 space-y-4 animate-pulse">
-        <Database className="text-slate-200 animate-bounce" size={48} />
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing Distributed Ledger...</p>
-    </div>
-  );
-
-  if (user.role === UserRole.DISTRIBUTOR) return <DistributorDashboard user={user} />;
-  if (user.role === UserRole.RETAILER) return <RetailerDashboard user={user} />;
-
-  const totalBatches = batches.length;
-  const bondedCount = batches.filter(b => b.status === BatchStatus.BONDED).length;
-  const blockHeight = 15204 + totalBatches;
-
-  const statusData = [
-    { name: 'Bonded', value: bondedCount },
-    { name: 'Sold', value: batches.filter(b => b.status === BatchStatus.SOLD).length },
-  ].filter(d => d.value > 0);
-
-  const COLORS = ['#f59e0b', '#6366f1', '#10b981'];
+  const mockData = [
+    { name: 'Mon', vol: 400 },
+    { name: 'Tue', vol: 300 },
+    { name: 'Wed', vol: 600 },
+    { name: 'Thu', vol: 800 },
+    { name: 'Fri', vol: 500 },
+    { name: 'Sat', vol: 900 },
+    { name: 'Sun', vol: 1100 },
+  ];
 
   return (
-    <div className="w-full space-y-8 pb-12">
-      {/* Network Health Bar */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between shadow-2xl gap-6">
-          <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                  <div className="relative flex h-3 w-3">
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isCloud ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-                    <span className={`relative inline-flex rounded-full h-3 w-3 ${isCloud ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className={`font-black text-xs uppercase tracking-widest ${isCloud ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {isCloud ? 'Mainnet Live' : 'Simulation Mode'}
-                    </span>
-                    <span className="text-[10px] text-slate-400">Node ID: {user.gln.slice(-6)}</span>
-                  </div>
-              </div>
-              <div className="w-px h-8 bg-slate-800 hidden md:block"></div>
-              <div className="flex items-center gap-3">
-                  <Cloud size={16} className="text-indigo-400" />
-                  <div className="flex flex-col">
-                    <span className="font-bold text-xs">Ledger Source</span>
-                    <span className="text-[10px] text-slate-400 uppercase">{isCloud ? 'Centralized AWS DB' : 'Local Browser DB'}</span>
-                  </div>
-              </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Network Header */}
+      <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white flex flex-col md:flex-row justify-between items-center gap-8 shadow-2xl">
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Activity size={32} />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-slate-900 rounded-full"></div>
           </div>
-          <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
-              <div className="flex flex-col items-end">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Block Height</span>
-                  <span className="text-sm font-mono font-black text-indigo-300">#{blockHeight}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2 rounded-2xl">
-                  <ShieldCheck size={16} className="text-indigo-400" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Immutable Storage</span>
-              </div>
+          <div>
+            <h2 className="text-2xl font-black tracking-tight">E-Ledger Mainnet Node</h2>
+            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mt-1">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              Synchronized & Validated • Block #15,804
+            </div>
           </div>
+        </div>
+        <div className="flex gap-4">
+          <div className="bg-slate-800 px-6 py-3 rounded-2xl border border-slate-700">
+            <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Node Latency</p>
+            <p className="text-lg font-mono font-bold text-indigo-400">14ms</p>
+          </div>
+          <div className="bg-slate-800 px-6 py-3 rounded-2xl border border-slate-700">
+            <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Peer Group</p>
+            <p className="text-lg font-mono font-bold text-emerald-400">18 Nodes</p>
+          </div>
+        </div>
       </div>
 
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Inventory" value={totalBatches} icon={Box} color="bg-indigo-500" subtitle="Total on Chain" trend="+4.2%" />
-        <StatCard title="Duty Liabilities" value={bondedCount} icon={Stamp} color="bg-amber-500" subtitle="Pending State Duty" trend="-1.5%" />
-        <StatCard title="Compliance Rate" value="100%" icon={CheckCircle2} color="bg-emerald-500" subtitle="Verified Authenticity" />
-        <StatCard title="Network Activity" value="99.9%" icon={Activity} color="bg-blue-500" subtitle="Node Uptime" />
+        <StatCard title="Total Inventory" value={batches.length} icon={Box} trend="+12.5%" color="bg-indigo-600" />
+        <StatCard title="Duty Liabilities" value="₹2.4M" icon={Landmark} color="bg-amber-500" />
+        <StatCard title="Compliance Health" value="100%" icon={ShieldCheck} color="bg-emerald-500" />
+        <StatCard title="Ledger Entries" value="2.1k" icon={Database} color="bg-slate-600" />
       </div>
 
+      {/* Analytics Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-           <div className="flex justify-between items-center mb-8">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <BarChart3 className="text-indigo-600" size={20} />
-                Volume Analytics
-              </h3>
-           </div>
-           <div className="h-72 w-full">
-             <ResponsiveContainer width="100%" height="100%">
-               <AreaChart data={[
-                 {name: 'W1', duty: 400, bonded: 240},
-                 {name: 'W2', duty: 300, bonded: 139},
-                 {name: 'W3', duty: 520, bonded: 380},
-                 {name: 'W4', duty: 610, bonded: 210},
-               ]}>
-                 <defs>
-                   <linearGradient id="colorDuty" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                   </linearGradient>
-                 </defs>
-                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                 <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }} />
-                 <Area type="monotone" dataKey="duty" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorDuty)" />
-                 <Area type="monotone" dataKey="bonded" stroke="#f59e0b" strokeWidth={3} fillOpacity={0.1} fill="#f59e0b" />
-               </AreaChart>
-             </ResponsiveContainer>
-           </div>
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <h3 className="text-lg font-black text-slate-900 mb-8 flex items-center gap-2">
+            <TrendingUp size={20} className="text-indigo-600" />
+            Blockchain Transaction Volume
+          </h3>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={mockData}>
+                <defs>
+                  <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
+                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                <Area type="monotone" dataKey="vol" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVol)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col">
-            <h3 className="text-lg font-black text-slate-900 mb-6">Status Distribution</h3>
-            <div className="flex-1 min-h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie 
-                      data={statusData.length ? statusData : [{name: 'Empty', value: 1}]} 
-                      innerRadius={65} 
-                      outerRadius={90} 
-                      paddingAngle={8} 
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                      {statusData.length === 0 && <Cell fill="#f1f5f9" />}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-            </div>
-            <div className="space-y-4 mt-6">
-                {statusData.map((d, i) => (
-                    <div key={i} className="flex justify-between items-center text-xs p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <span className="w-2.5 h-2.5 rounded-full" style={{background: COLORS[i]}}></span>
-                            <span className="text-slate-500 font-bold uppercase">{d.name}</span>
-                        </div>
-                        <span className="font-black text-slate-900">{d.value}</span>
-                    </div>
-                ))}
-            </div>
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+          <h3 className="text-lg font-black text-slate-900 mb-6">Recent Alerts</h3>
+          <div className="space-y-4">
+            {[1, 2].map(i => (
+              <div key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <Activity size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Batch Expiring Soon</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-black mt-1">Lot: LOT-2024-001</p>
+                </div>
+              </div>
+            ))}
+            <button className="w-full py-4 text-[10px] font-black uppercase text-slate-400 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
+              View All Audits
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 {
   "name": "E-Ledger",
-  "description": "A permissioned, GS1-compliant blockchain ledger for Excise and Pharma supply chains to track inventory, duty, and compliance.",
+  "description": "A permissioned, GS1-compliant blockchain ledger for Excise and Pharma supply chains.",
   "requestFramePermissions": [
     "camera"
   ]

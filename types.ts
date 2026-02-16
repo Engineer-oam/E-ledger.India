@@ -86,6 +86,7 @@ export interface Batch {
   taxableValue?: number;
   taxRate?: number;
   taxAmount?: number;
+  mrp?: number; // Maximum Retail Price (India Specific)
 
   // Return tracking
   totalReturnedQuantity?: number;
@@ -105,6 +106,7 @@ export interface User {
   positionLabel: string;
   erpType: ERPType;
   erpStatus: 'CONNECTED' | 'DISCONNECTED' | 'PENDING';
+  subCategories?: string[];
 }
 
 // Internal ERP Data Structures

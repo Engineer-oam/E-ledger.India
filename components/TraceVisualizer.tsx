@@ -1,205 +1,93 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+// Added User to imports
 import { Batch, User } from '../types';
 import { LedgerService } from '../services/ledgerService';
 import { 
-  CheckCircle2, 
-  MapPin, 
-  User as UserIcon, 
-  Clock, 
-  ArrowLeft,
-  FileBadge,
-  Landmark,
-  ShieldCheck,
-  Receipt,
-  RotateCcw
+  CheckCircle2, MapPin, User as UserIcon, Clock, ArrowLeft, 
+  ShieldCheck, Database, Link as LinkIcon 
 } from 'lucide-react';
 
-const TraceVisualizer = ({ user }: { user: User }) => {
+// Added user prop to component definition to match App.tsx usage
+const TraceVisualizer: React.FC<{ user: User }> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
   const [batch, setBatch] = useState<Batch | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBatch = async () => {
-      if (!id) return;
-      const data = await LedgerService.getBatchByID(id);
-      if (data) setBatch(data);
-      setLoading(false);
-    };
-    fetchBatch();
+    if (id) LedgerService.getBatchByID(id).then(setBatch);
   }, [id]);
 
-  if (loading) return <div className="p-8 text-center">Tracing Batch...</div>;
-  if (!batch) return <div className="p-8 text-center text-red-500">Batch not found on ledger.</div>;
+  if (!batch) return <div className="p-12 text-center text-slate-400">Locating Block...</div>;
 
   return (
-    <div className="w-full">
-      <Link to="/batches" className="flex items-center space-x-2 text-slate-500 hover:text-slate-800 mb-6 transition-colors">
-        <ArrowLeft size={18} />
-        <span>Back to Inventory</span>
+    <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-8 duration-700">
+      <Link to="/batches" className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold text-xs uppercase transition-colors">
+        <ArrowLeft size={16} /> Back to Records
       </Link>
 
-      <div className="bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden mb-8">
-        <div className="p-6 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">{batch.productName}</h1>
-            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-sm text-slate-500 font-mono">
-              <span>ID: {batch.batchID}</span>
-              <span className="hidden md:inline">•</span>
-              <span>GTIN: {batch.gtin}</span>
-            </div>
-          </div>
-          <div className="text-left md:text-right">
-             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold tracking-wide uppercase">
-               {batch.status}
-             </span>
-             <p className="text-xs text-slate-400 mt-2">Owner GLN: {batch.currentOwnerGLN}</p>
-          </div>
+      {/* Block Header */}
+      <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+           <Database size={160} />
         </div>
-        
-        <div className="p-6 grid grid-cols-1 md:grid-cols-5 gap-6">
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Manufacturer</p>
-             <p className="font-mono text-sm break-all text-slate-700">{batch.manufacturerGLN}</p>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">
+              {batch.status}
+            </span>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">{batch.productName}</h1>
+            <p className="text-sm font-mono text-slate-500 mt-2">UUID: {batch.batchID}</p>
           </div>
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Expiry</p>
-             <p className="font-mono text-sm text-slate-700">{batch.expiryDate}</p>
-          </div>
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Original Qty</p>
-             <p className="font-mono text-sm text-slate-700">{batch.quantity} {batch.unit}</p>
-          </div>
-          <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
-             <p className="text-[10px] text-orange-400 uppercase font-bold tracking-wider mb-1">Total Returned</p>
-             <p className="font-mono text-sm text-orange-700 font-bold">{batch.totalReturnedQuantity || 0} {batch.unit}</p>
-          </div>
-          <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-             <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
-                <Landmark size={10} /> HSN Code
-             </p>
-             <p className="font-mono text-sm text-indigo-700 font-bold">{batch.hsnCode || '2208'}</p>
+          <div className="text-right">
+             <div className="p-4 bg-slate-900 rounded-2xl text-white">
+                <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Integrity Hash</p>
+                <p className="text-xs font-mono text-indigo-400 break-all max-w-[200px]">{batch.integrityHash?.slice(0, 24)}...</p>
+             </div>
           </div>
         </div>
       </div>
 
       {/* Timeline */}
-      <div className="w-full">
-        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Clock className="text-slate-400" />
-            <span>Chain of Custody</span>
-        </h3>
-        <div className="relative pl-8 border-l-2 border-slate-200 space-y-12">
-            {batch.trace.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((event, index) => (
-            <div key={event.eventID} className="relative">
-                {/* Dot */}
-                <div className={`absolute -left-[41px] p-1 bg-white border-4 ${index === 0 ? 'border-blue-500' : 'border-slate-300'} rounded-full`}>
-                <CheckCircle2 size={20} className={index === 0 ? 'text-blue-500' : 'text-slate-400'} />
-                </div>
+      <div className="relative pl-8 md:pl-0">
+        <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-px bg-slate-200 -translate-x-1/2"></div>
+        
+        <div className="space-y-12 relative">
+          {batch.trace.map((event, idx) => (
+            <div key={event.eventID} className={`flex flex-col md:flex-row items-center w-full ${idx % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
+              <div className="flex-1 md:w-1/2"></div>
+              
+              {/* Dot */}
+              <div className="absolute left-4 md:left-1/2 w-8 h-8 bg-white border-4 border-slate-900 rounded-full -translate-x-1/2 z-10 flex items-center justify-center shadow-lg">
+                <LinkIcon size={12} className="text-indigo-600" />
+              </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-                <div className="flex flex-col md:flex-row justify-between items-start mb-4 gap-2">
-                    <div>
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        {event.type}
-                        {event.type === 'MANUFACTURE' && <FileBadge size={18} className="text-amber-500"/>}
-                        {event.type === 'DISPATCH' && <Receipt size={18} className="text-blue-500"/>}
-                        {event.type === 'RETURN' && <RotateCcw size={18} className="text-orange-500"/>}
+              <div className={`flex-1 md:w-1/2 p-4 md:p-8 ${idx % 2 === 0 ? 'md:pr-12' : 'md:pl-12'}`}>
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-black text-slate-900 uppercase tracking-widest text-xs flex items-center gap-2">
+                       <ShieldCheck size={14} className="text-emerald-500" />
+                       {event.type}
                     </h3>
-                    <div className="flex items-center space-x-4 text-sm text-slate-500 mt-1">
-                        <span className="flex items-center space-x-1">
-                        <Clock size={14} />
-                        <span>{new Date(event.timestamp).toLocaleString()}</span>
-                        </span>
-                    </div>
-                    </div>
-                    <div className="bg-slate-50 px-3 py-1 rounded text-xs font-mono text-slate-400 border border-slate-200 break-all">
-                    Tx: {event.txHash.substring(0, 12)}...
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600">
-                    <div className="flex items-center space-x-2">
-                    <UserIcon size={16} className="text-slate-400" />
-                    <span className="font-medium">{event.actorName}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                    <MapPin size={16} className="text-slate-400" />
-                    <span>{event.location}</span>
-                    </div>
-                </div>
-
-                {/* Specific Return Detail View */}
-                {event.type === 'RETURN' && (
-                  <div className="mt-4 p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-2">
-                     <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Return Audit</span>
-                        <span className="text-xs font-bold text-orange-900">{event.returnQuantity} {batch.unit}</span>
-                     </div>
-                     <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div>
-                           <p className="text-slate-500 font-bold uppercase text-[9px]">Reason</p>
-                           <p className="text-orange-800 font-bold">{event.returnReason}</p>
-                        </div>
-                        <div>
-                           <p className="text-slate-500 font-bold uppercase text-[9px]">Recipient Node</p>
-                           <p className="font-mono text-orange-800">{event.returnRecipientGLN}</p>
-                        </div>
-                     </div>
+                    <p className="text-[10px] font-bold text-slate-400 font-mono">{new Date(event.timestamp).toLocaleDateString()}</p>
                   </div>
-                )}
-
-                {event.metadata && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                        <ShieldCheck size={14} className="text-emerald-500" />
-                        <span>Cryptographically Sealed Event Metadata</span>
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {Object.entries(event.metadata).map(([key, val]) => {
-                          // Special rendering for GST metadata
-                          if (key === 'gst' && typeof val === 'object' && val !== null) {
-                            return (
-                              <div key={key} className="col-span-full bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 space-y-3 mt-2">
-                                  <div className="flex items-center justify-between">
-                                     <h5 className="text-[10px] font-black text-blue-800 uppercase tracking-widest flex items-center gap-1.5">
-                                        <Landmark size={12} /> Tax Compliance (GST)
-                                     </h5>
-                                     <span className="text-xs font-mono font-bold text-blue-600 bg-white px-2 py-0.5 rounded border border-blue-100">{(val as any).invoiceNo}</span>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-6">
-                                     <div>
-                                        <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">HSN Code</p>
-                                        <p className="text-xs font-mono text-slate-700">{(val as any).hsnCode}</p>
-                                     </div>
-                                     <div>
-                                        <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">Taxable Val</p>
-                                        <p className="text-xs font-bold text-slate-800">₹{(val as any).taxableValue?.toLocaleString()}</p>
-                                     </div>
-                                     <div>
-                                        <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">GST ({(val as any).taxRate}%)</p>
-                                        <p className="text-xs font-bold text-emerald-600">₹{(val as any).taxAmount?.toLocaleString()}</p>
-                                     </div>
-                                  </div>
-                               </div>
-                            )
-                          }
-                          // Standard metadata fallback
-                          return (
-                            <div key={key} className="bg-slate-50 px-3 py-2 rounded text-xs break-words border border-slate-100 flex justify-between gap-4">
-                                <span className="font-semibold text-slate-500 uppercase text-[9px] tracking-wider">{key}</span>
-                                <span className="font-mono text-slate-700 text-right">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
-                            </div>
-                          );
-                        })}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <UserIcon size={14} className="text-slate-400" />
+                      <span className="font-bold">{event.actorName}</span>
                     </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <MapPin size={14} className="text-slate-400" />
+                      <span>{event.location}</span>
                     </div>
-                )}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-50">
+                    <p className="text-[9px] font-mono text-slate-300 break-all leading-tight">TX: {event.txHash}</p>
+                  </div>
                 </div>
+              </div>
             </div>
-            ))}
+          ))}
         </div>
       </div>
     </div>

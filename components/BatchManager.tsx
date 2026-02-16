@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Batch, UserRole, BatchStatus, GSTDetails, EWayBill, ReturnReason, Sector } from '../types';
 import { LedgerService } from '../services/ledgerService';
 import { AuthService } from '../services/authService';
-import { Plus, Search, Eye, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, Wine, Stamp, AlertTriangle, MapPin, IndianRupee, Printer, X, Filter, Percent, Landmark, Pill, ShoppingBag } from 'lucide-react';
+import { Plus, Search, ArrowRight, Package, Zap, Truck, ArrowUpRight, ArrowDownLeft, Send, CheckSquare, Square, Layers, RotateCcw, AlertTriangle, MapPin, IndianRupee, Printer, Filter, Percent, Landmark, Pill, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BatchLabel from './BatchLabel';
 import TransferModal from './TransferModal'; 
@@ -38,21 +37,22 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
 
   const [loading, setLoading] = useState(true);
 
-  // Sector-aware Initial Form State
+  // Pharma-Specific Initial Form State
   const getInitialFormData = () => ({
     gtin: '',
     productName: '',
     lotNumber: '',
     expiryDate: '',
     quantity: 0,
-    unit: user.sector === Sector.PHARMA ? 'Packs' : user.sector === Sector.EXCISE ? 'Cases' : 'Units',
-    alcoholContent: 0,
+    unit: 'Packs',
+    alcoholContent: 0, // Not used in Pharma UI but kept for type compatibility
     dosageForm: '',
-    category: '',
-    isDutyPaid: false,
-    hsnCode: user.sector === Sector.PHARMA ? '3004' : user.sector === Sector.EXCISE ? '2208' : '1901',
+    category: 'Prescription (Rx)',
+    isDutyPaid: true, // Pharma usually tax paid at source or irrelevant for "duty" status (unlike Excise)
+    hsnCode: '3004',
     taxableValue: 0,
-    taxRate: 18
+    taxRate: 12, // Standard GST for medicines often 12% or 18%
+    mrp: 0
   });
 
   const [formData, setFormData] = useState(getInitialFormData());
@@ -94,15 +94,15 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
       const taxAmount = (formData.taxableValue * formData.taxRate) / 100;
       const batchPayload: Partial<Batch> = {
         ...formData,
-        sector: user.sector,
+        sector: Sector.PHARMA,
         country: user.country,
         dutyPaid: formData.isDutyPaid,
-        status: formData.isDutyPaid ? BatchStatus.DUTY_PAID : BatchStatus.BONDED,
+        status: BatchStatus.CREATED, // Pharma starts as CREATED usually
         taxAmount: taxAmount
       };
       
       const batchID = await LedgerService.createBatch(batchPayload, user);
-      toast.success(`Batch ${batchID} Registered! Status: ${batchPayload.status}`);
+      toast.success(`Batch ${batchID} Registered!`);
       setShowCreateModal(false);
       fetchData(); 
       setFormData(getInitialFormData());
@@ -177,61 +177,36 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
   };
 
   const handleAutoFill = () => {
-    let mockProduct = '';
-    let mockCategory = '';
-    let mockUnit = 'Units';
-    let mockHsn = '0000';
-    let mockAlcohol = 0;
-    let mockDosage = '';
-
-    if (user.sector === Sector.PHARMA) {
-        const pharmaProducts = ['Paracetamol 500mg', 'Amoxicillin Formulation', 'Insulin Glargine', 'Cough Suppressant', 'Vitamix-D3'];
-        const dosageForms = ['Tablet', 'Capsule', 'Injectable', 'Syrup', 'Tablet'];
-        const idx = Math.floor(Math.random() * pharmaProducts.length);
-        mockProduct = pharmaProducts[idx];
-        mockDosage = dosageForms[idx];
-        mockCategory = 'Prescription Drug';
-        mockUnit = 'Packs';
-        mockHsn = '3004';
-    } else if (user.sector === Sector.EXCISE) {
-        const products = ['Royal Reserve Whisky', 'Old Monk Rum', 'Kingfisher Lager', 'Sula Shiraz', 'Blue Riband Gin'];
-        const categories = ['IMFL', 'IMFL', 'BEER', 'WINE', 'IMFL'];
-        const idx = Math.floor(Math.random() * products.length);
-        mockProduct = products[idx];
-        mockCategory = categories[idx];
-        mockAlcohol = mockCategory === 'BEER' ? 6.5 : 42.8;
-        mockUnit = 'Cases';
-        mockHsn = mockCategory === 'BEER' ? '2203' : '2208';
-    } else {
-        const fmcgProducts = ['Instant Coffee 500g', 'Organic Honey 1kg', 'Fabric Detergent', 'Shampoo Gold', 'Whole Wheat Flour 5kg'];
-        mockProduct = fmcgProducts[Math.floor(Math.random() * fmcgProducts.length)];
-        mockCategory = 'Consumer Good';
-        mockUnit = 'Units';
-        mockHsn = '1901';
-    }
+    const pharmaProducts = ['Amoxicillin 500mg', 'Paracetamol IP', 'Insulin Glargine', 'Azithromycin Tabs', 'Vitamix-D3'];
+    const dosageForms = ['Tablet', 'Capsule', 'Injectable', 'Syrup', 'Tablet'];
+    const categories = ['Prescription (Rx)', 'OTC', 'Biologic', 'Prescription (Rx)', 'Supplement'];
+    
+    const idx = Math.floor(Math.random() * pharmaProducts.length);
+    const mockProduct = pharmaProducts[idx];
+    const mockDosage = dosageForms[idx];
+    const mockCategory = categories[idx];
     
     const randomLot = `LOT-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`;
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 2);
     
-    const isPaid = Math.random() > 0.5;
-
     setFormData({
       gtin: AuthService.generateGTIN(),
       productName: mockProduct,
       lotNumber: randomLot,
       expiryDate: futureDate.toISOString().split('T')[0],
       quantity: Math.floor(Math.random() * 500) + 50,
-      unit: mockUnit,
-      alcoholContent: mockAlcohol,
+      unit: 'Packs',
+      alcoholContent: 0,
       dosageForm: mockDosage,
       category: mockCategory,
-      isDutyPaid: isPaid,
-      hsnCode: mockHsn,
-      taxableValue: (Math.floor(Math.random() * 500) + 50) * 1200,
-      taxRate: 18
+      isDutyPaid: true,
+      hsnCode: '3004',
+      taxableValue: (Math.floor(Math.random() * 500) + 50) * 450,
+      taxRate: 12,
+      mrp: Math.floor(Math.random() * 500) + 100
     });
-    toast.info(`${user.sector} form auto-filled`);
+    toast.info(`Pharma data auto-filled`);
   };
 
   const getStatusColor = (status: BatchStatus) => {
@@ -250,23 +225,12 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
     }
   };
 
-  const getInventoryTitle = () => {
-    switch(user.sector) {
-      case Sector.PHARMA: return 'Pharma Inventory';
-      case Sector.EXCISE: return 'Spirits Inventory';
-      case Sector.FMCG: return 'CPG Inventory';
-      default: return 'Batch Inventory';
-    }
-  };
-
-  const SectorIcon = user.sector === Sector.PHARMA ? Pill : user.sector === Sector.EXCISE ? Wine : ShoppingBag;
-
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-            <h2 className="text-2xl font-bold text-slate-800">{getInventoryTitle()}</h2>
-            <p className="text-sm text-slate-500">Track {user.sector.toLowerCase()} units, compliance status, and shipments</p>
+            <h2 className="text-2xl font-bold text-slate-800">Pharmaceutical Inventory</h2>
+            <p className="text-sm text-slate-500">Track drug batches, expiry, and compliance status.</p>
         </div>
         
         <div className="flex gap-2 w-full sm:w-auto">
@@ -288,7 +252,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
             {user.role === UserRole.MANUFACTURER && (
             <button 
                 onClick={() => setShowCreateModal(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-sm ml-auto"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-sm ml-auto"
             >
                 <Plus size={18} />
                 <span className="hidden sm:inline">Register Batch</span>
@@ -305,7 +269,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                     <Search className="text-slate-400 shrink-0" size={18} />
                     <input 
                         type="text" 
-                        placeholder="Search stock..." 
+                        placeholder="Search medicines..." 
                         className="flex-1 outline-none text-slate-700 bg-transparent placeholder-slate-400 min-w-0 text-sm"
                     />
                 </div>
@@ -317,7 +281,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="pl-10 pr-8 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
+                        className="pl-10 pr-8 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 bg-white focus:ring-2 focus:ring-emerald-500 outline-none appearance-none cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
                     >
                         <option value="ALL">All Status</option>
                         {Object.values(BatchStatus).map((status) => (
@@ -336,7 +300,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                         className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md hover:bg-slate-700 transition-colors"
                     >
                         <Printer size={16} />
-                        <span>Print Labels</span>
+                        <span>Print GS1 Labels</span>
                     </button>
 
                     <button 
@@ -359,7 +323,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                 <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
                     <th className="px-4 py-4 w-10"></th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Brand / Details</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Product / Dosage</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">GTIN</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Category</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Status</th>
@@ -393,14 +357,13 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                             </td>
                             <td className="px-6 py-4">
                             <div className="flex items-center space-x-3">
-                                <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
-                                    <SectorIcon size={20} />
+                                <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                                    <Pill size={20} />
                                 </div>
                                 <div>
                                 <p className="font-medium text-slate-800">{batch.productName}</p>
                                 <p className="text-xs text-slate-500 font-mono">
                                     {batch.batchID} 
-                                    {batch.alcoholContent ? ` • ${batch.alcoholContent}% ABV` : ''}
                                     {batch.dosageForm ? ` • ${batch.dosageForm}` : ''}
                                 </p>
                                 </div>
@@ -430,7 +393,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                                                 setReturnData({ ...returnData, toGLN: batch.manufacturerGLN, quantityToReturn: available }); 
                                                 setShowReturnModal(true); 
                                             }}
-                                            className="text-orange-600 hover:text-orange-800 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+                                            className="text-amber-600 hover:text-amber-800 text-xs font-bold uppercase tracking-wider flex items-center gap-1"
                                         >
                                             <RotateCcw size={14} />
                                             <span>Return</span>
@@ -491,8 +454,8 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                     <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
                         <tr>
                             <th className="px-6 py-4">Direction</th>
-                            <th className="px-6 py-4">Licensee (GLN)</th>
-                            <th className="px-6 py-4">Brand / Batch</th>
+                            <th className="px-6 py-4">Partner (GLN)</th>
+                            <th className="px-6 py-4">Product / Batch</th>
                             <th className="px-6 py-4">E-Way Bill Details</th>
                             <th className="px-6 py-4 text-right">Status</th>
                         </tr>
@@ -625,13 +588,13 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
             <div className="flex-1 p-4 md:p-8 flex flex-col overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-xl text-slate-800">Register New {user.sector} Batch</h3>
+                <h3 className="font-bold text-xl text-slate-800">Register New Batch</h3>
                 <button onClick={() => setShowCreateModal(false)} className="md:hidden text-slate-400 hover:text-slate-600">✕</button>
               </div>
               <div className="mb-4">
-                <button onClick={handleAutoFill} className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors border border-indigo-200">
-                  <Zap size={16} className="text-indigo-600 fill-current" />
-                  <span>Auto-Fill (Simulate {user.sector} Output)</span>
+                <button onClick={handleAutoFill} className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors border border-emerald-200">
+                  <Zap size={16} className="text-emerald-600 fill-current" />
+                  <span>Auto-Fill (Simulate Pharma Data)</span>
                 </button>
               </div>
               <form onSubmit={handleCreate} className="space-y-5 flex-1">
@@ -639,45 +602,25 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                   {/* Left Column: Product Info */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2 border-b pb-1">
-                      <Package size={16} className="text-indigo-600" />
-                      Product & Logistics
+                      <Package size={16} className="text-emerald-600" />
+                      Drug Specifics
                     </h4>
-                    <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Product / Brand Name</label><input required type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} placeholder={user.sector === Sector.PHARMA ? "e.g. Amoxicillin 500mg" : "e.g. Royal Reserve Whisky"} /></div>
+                    <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Product Name</label><input required type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})} placeholder="e.g. Amoxicillin 500mg" /></div>
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Category</label>
-                        {user.sector === Sector.EXCISE ? (
-                          <select className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                            <option value="IMFL">IMFL (Foreign Liquor)</option>
-                            <option value="BEER">Beer</option>
-                            <option value="WINE">Wine</option>
-                            <option value="COUNTRY_LIQUOR">Country Liquor</option>
-                            <option value="SPIRIT">Rectified Spirit (ENA)</option>
-                          </select>
-                        ) : user.sector === Sector.PHARMA ? (
-                          <select className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                            <option value="Prescription">Prescription (Rx)</option>
+                        <select className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                            <option value="Prescription (Rx)">Prescription (Rx)</option>
                             <option value="OTC">Over-the-Counter (OTC)</option>
                             <option value="Controlled">Controlled Substance</option>
-                            <option value="Vaccine">Vaccine / Biologic</option>
-                          </select>
-                        ) : (
-                          <input className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="e.g. Grocery" />
-                        )}
+                            <option value="Biologic">Biologic / Vaccine</option>
+                            <option value="Medical Device">Medical Device</option>
+                        </select>
                       </div>
                       <div>
-                        {user.sector === Sector.EXCISE ? (
-                          <>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Alcohol %</label>
-                            <input required type="number" step="0.1" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.alcoholContent} onChange={e => setFormData({...formData, alcoholContent: parseFloat(e.target.value)})} />
-                          </>
-                        ) : (
-                          <>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Form / Strength</label>
-                            <input required type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.dosageForm} onChange={e => setFormData({...formData, dosageForm: e.target.value})} placeholder={user.sector === Sector.PHARMA ? "e.g. 500mg Tablet" : "e.g. 1kg Pack"} />
-                          </>
-                        )}
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Form / Strength</label>
+                        <input required type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.dosageForm} onChange={e => setFormData({...formData, dosageForm: e.target.value})} placeholder="e.g. 500mg Tablet" />
                       </div>
                     </div>
 
@@ -687,7 +630,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Manufactured On</label><input required type="date" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} /></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Expiry Date</label><input required type="date" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} /></div>
                       <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Quantity ({formData.unit})</label><input required type="number" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})} /></div>
                     </div>
                   </div>
@@ -696,7 +639,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                   <div className="space-y-4">
                     <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2 border-b pb-1">
                       <Landmark size={16} className="text-emerald-600" />
-                      Tax & GST Compliance
+                      GST & Pricing (India)
                     </h4>
                     
                     <div className="grid grid-cols-2 gap-4">
@@ -705,7 +648,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                         <input required type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm font-mono" value={formData.hsnCode} onChange={e => setFormData({...formData, hsnCode: e.target.value})} />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Tax Rate (%)</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">GST Rate (%)</label>
                         <div className="relative">
                           <Percent size={14} className="absolute right-3 top-2.5 text-slate-400" />
                           <input required type="number" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm" value={formData.taxRate} onChange={e => setFormData({...formData, taxRate: parseInt(e.target.value)})} />
@@ -714,69 +657,64 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Taxable Value (Local Currency)</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Taxable Value (₹)</label>
                       <div className="relative">
                         <IndianRupee size={14} className="absolute left-3 top-2.5 text-slate-400" />
                         <input required type="number" className="w-full border border-slate-300 rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm font-bold" value={formData.taxableValue} onChange={e => setFormData({...formData, taxableValue: parseInt(e.target.value)})} />
                       </div>
                     </div>
 
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1">
+                            <Tag size={12} />
+                            Maximum Retail Price (MRP)
+                        </label>
+                        <div className="relative">
+                            <IndianRupee size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                            <input 
+                                required 
+                                type="number" 
+                                className="w-full border border-slate-300 rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm font-bold bg-teal-50 border-teal-200 text-teal-900" 
+                                value={formData.mrp} 
+                                onChange={e => setFormData({...formData, mrp: parseInt(e.target.value)})}
+                                placeholder="Incl. of all taxes"
+                            />
+                        </div>
+                    </div>
+
                     <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
                       <div className="flex justify-between text-[10px] font-bold text-emerald-700 uppercase mb-1">
-                        <span>GST/VAT Projection</span>
+                        <span>GST Projection</span>
                         <span>{((formData.taxableValue * formData.taxRate) / 100).toLocaleString()}</span>
                       </div>
                       <div className="w-full bg-emerald-200 h-1 rounded-full overflow-hidden">
                         <div className="bg-emerald-600 h-full w-[100%]"></div>
                       </div>
                     </div>
-
-                    {/* Duty Paid Toggle - Sector Contextual */}
-                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-2">
-                        <label className="flex items-center cursor-pointer gap-3">
-                            <div className="relative">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only peer"
-                                    checked={formData.isDutyPaid}
-                                    onChange={e => setFormData({...formData, isDutyPaid: e.target.checked})} 
-                                />
-                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </div>
-                            <div>
-                                <span className="block text-sm font-bold text-slate-800">
-                                    {user.sector === Sector.EXCISE ? 'Pre-Pay State Excise Duty' : 'Duty/Tax Pre-Paid'}
-                                </span>
-                                <span className="text-xs text-slate-500">
-                                    {user.sector === Sector.EXCISE ? 'Mark batch as Duty Paid immediately' : 'Seal batch for immediate distribution'}
-                                </span>
-                            </div>
-                        </label>
-                    </div>
                   </div>
                 </div>
 
                 <div className="pt-6 flex justify-end space-x-3 mt-auto">
                     <button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancel</button>
-                    <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all transform hover:scale-[1.02]">Register Batch & Generate ID</button>
+                    <button type="submit" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md transition-all transform hover:scale-[1.02]">Register Batch & Generate ID</button>
                 </div>
               </form>
             </div>
             <div className="w-full md:w-80 bg-slate-50 border-t md:border-t-0 md:border-l border-slate-200 p-6 md:p-8 flex flex-col items-center justify-center">
                 <div className="mb-6 text-center">
-                    <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wide">Security Feature</h4>
-                    <p className="text-xs text-slate-400 mt-1">{user.sector === Sector.EXCISE ? 'Digital Excise Hologram' : 'Serialized Compliance Seal'}</p>
+                    <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wide">Label Preview</h4>
+                    <p className="text-xs text-slate-400 mt-1">Serialized 2D DataMatrix</p>
                 </div>
                 <BatchLabel 
                     gtin={formData.gtin} 
                     lot={formData.lotNumber} 
                     expiry={formData.expiryDate} 
                     productName={formData.productName} 
-                    status={formData.isDutyPaid ? BatchStatus.DUTY_PAID : BatchStatus.BONDED}
+                    status={formData.isDutyPaid ? BatchStatus.DUTY_PAID : BatchStatus.CREATED}
                 />
                 <div className="mt-8 text-center px-4">
                     <p className="text-xs text-slate-400 leading-relaxed">
-                        This QR represents the {user.sector} Integrity Seal. {user.sector === Sector.PHARMA ? 'It allows for real-time VRS verification and DSCSA reporting.' : 'It must be affixed to every unit before leaving the bonded node.'}
+                        This DataMatrix enables real-time verification at pharmacies and hospitals, ensuring compliance with iVEDA and global track & trace mandates.
                     </p>
                 </div>
             </div>
@@ -798,16 +736,16 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                   <RotateCcw className="text-orange-500" />
+                   <RotateCcw className="text-amber-500" />
                    <span>Initiate Return</span>
                 </h3>
                 <button onClick={() => setShowReturnModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
               </div>
               
-              <div className="bg-orange-50 p-4 rounded-lg mb-6 border border-orange-100">
-                 <p className="text-sm text-orange-900 font-medium">Returning: {selectedBatchForReturn.productName}</p>
-                 <p className="text-xs text-orange-700 font-mono mt-1">{selectedBatchForReturn.batchID}</p>
-                 <p className="text-xs text-orange-600 mt-1">Available to Return: {selectedBatchForReturn.quantity - (selectedBatchForReturn.totalReturnedQuantity || 0)} {selectedBatchForReturn.unit}</p>
+              <div className="bg-amber-50 p-4 rounded-lg mb-6 border border-amber-100">
+                 <p className="text-sm text-amber-900 font-medium">Returning: {selectedBatchForReturn.productName}</p>
+                 <p className="text-xs text-amber-700 font-mono mt-1">{selectedBatchForReturn.batchID}</p>
+                 <p className="text-xs text-amber-600 mt-1">Available to Return: {selectedBatchForReturn.quantity - (selectedBatchForReturn.totalReturnedQuantity || 0)} {selectedBatchForReturn.unit}</p>
               </div>
 
               <form onSubmit={handleReturnSubmit} className="space-y-4">
@@ -816,7 +754,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Return To (GLN)</label>
                         <input 
                             required
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2 font-mono text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2 font-mono text-sm focus:ring-2 focus:ring-amber-500 outline-none"
                             value={returnData.toGLN}
                             onChange={e => setReturnData({...returnData, toGLN: e.target.value})}
                         />
@@ -828,7 +766,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                             required
                             min="1"
                             max={selectedBatchForReturn.quantity - (selectedBatchForReturn.totalReturnedQuantity || 0)}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
                             value={returnData.quantityToReturn}
                             onChange={e => setReturnData({...returnData, quantityToReturn: parseInt(e.target.value)})}
                         />
@@ -837,7 +775,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                   <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reason</label>
                       <select 
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white"
                         value={returnData.reason}
                         onChange={e => setReturnData({...returnData, reason: e.target.value as ReturnReason})}
                       >
@@ -850,7 +788,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Refund Amount</label>
                       <input 
                         type="number"
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
                         value={returnData.refundAmount}
                         onChange={e => setReturnData({...returnData, refundAmount: parseFloat(e.target.value)})}
                       />
@@ -866,7 +804,7 @@ const BatchManager: React.FC<BatchManagerProps> = ({ user }) => {
                       </button>
                       <button 
                         type="submit"
-                        className="px-4 py-2 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 shadow-md"
+                        className="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600 shadow-md"
                       >
                           Confirm Return
                       </button>
