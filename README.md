@@ -1,20 +1,72 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# E-Ledger India
 
-# Run and deploy your AI Studio app
+## Overview
+E-Ledger is a high-performance blockchain-based supply chain tracking system designed for the Indian pharmaceutical industry. The system is built to handle 70,000 TPS (transactions per second) with cross-border capabilities and GLN (Global Location Number) verification.
 
-This contains everything you need to run your app locally.
+## Features
+- **High Performance**: Designed for 70,000 TPS capacity with sharding support
+- **Blockchain Integration**: Immutable transaction ledger with Merkle tree verification
+- **Cross-Border Operations**: GLN verification against international registries
+- **Compliance**: India-specific regulatory support (Drugs & Cosmetics Act)
+- **ERP Integration**: Support for SAP, Oracle, Tally, Zoho, and other ERP systems
+- **Supply Chain Tracking**: Complete batch tracking from manufacturer to retailer
 
-View your app in AI Studio: https://ai.studio/apps/drive/163rRM0YoB23c5poZ54A-mH7MpQrYQ1kI
+## Architecture
+- **Backend**: NestJS with TypeScript
+- **Database**: MongoDB with sharding
+- **Caching**: Redis Enterprise
+- **Message Queue**: Apache Kafka
+- **Authentication**: Supabase Auth
+- **Frontend**: React with TypeScript
 
-## Run Locally
+## Supabase Authentication Integration
+The system includes a complete Supabase authentication implementation:
+- Sign up, login, logout, and token refresh endpoints
+- JWT-based authentication with proper validation
+- Role-based access control
+- Secure session management
 
-**Prerequisites:**  Node.js
+## Installation
 
+### Prerequisites
+- Node.js 16+
+- MongoDB
+- Redis
+- Kafka (optional, for production)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Setup
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Copy `.env.example` to `.env` and configure your environment variables
+4. Start the development server: `npm run start:dev`
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/login` - User authentication
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/refresh` - Token refresh
+
+### User Management
+- `POST /api/users/signup` - Complete user registration
+- `POST /api/users/login` - User login with profile data
+- `GET /api/users/me` - Get current user profile
+- `GET /api/users` - Get all users (admin/regulator only)
+- `GET /api/users/:id` - Get user by ID
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user (admin/regulator only)
+
+### Health & Metrics
+- `GET /api/health` - System health check
+- `GET /api/health/detailed` - Detailed health status
+- `GET /api/metrics` - Application metrics
+
+## Configuration
+The system uses environment variables for configuration. See the `.env` file for all configurable options.
+
+## Contributing
+Contributions are welcome! Please read the contributing guidelines before submitting pull requests.
+
+## License
+This project is licensed under the MIT License.
